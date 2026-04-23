@@ -12,8 +12,22 @@ const app = express();
 
 // ── Segurança ──────────────────────────────────────────────
 app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
+
+const allowedOrigins = [
+  'http://localhost:3000',
+  'http://localhost:4000',
+  'https://custeai.com.br',
+  'https://www.custeai.com.br',
+  'https://app.custeai.com.br',
+  ...(process.env.FRONTEND_URL ? process.env.FRONTEND_URL.split(',') : []),
+];
+
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+  origin: (origin, callback) => {
+    // permite same-origin (origin undefined) e origens autorizadas
+    if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
+    callback(new Error('Origem não permitida pelo CORS'));
+  },
   credentials: true,
 }));
 

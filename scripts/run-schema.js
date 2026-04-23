@@ -7,28 +7,31 @@ const { Pool } = require('pg');
 const path = require('path');
 const fs   = require('fs');
 
-const PASSWORD = '12849103Gd$';
+const PASSWORD = process.env.DB_PASSWORD || '12849103Gd$';
 const PROJECT  = 'idwtvgzbzluvzhzttclj';
 const SCHEMA   = path.join(__dirname, '../schema.sql');
 
+const DB_HOST = process.env.DB_HOST || 'aws-1-sa-east-1.pooler.supabase.com';
+const DB_USER = process.env.DB_USER || `postgres.${PROJECT}`;
+
 const configs = [
-  // 1) Pooler session mode IPv4 (Supabase Supavisor)
+  // 1) Pooler via .env (configuração principal)
   {
-    label: 'Pooler session (5432)',
-    host: 'aws-0-sa-east-1.pooler.supabase.com',
-    port: 5432,
-    user: `postgres.${PROJECT}`,
+    label: `Pooler .env (${DB_HOST}:6543)`,
+    host: DB_HOST,
+    port: 6543,
+    user: DB_USER,
     password: PASSWORD,
     database: 'postgres',
     ssl: { rejectUnauthorized: false },
     connectionTimeoutMillis: 15000,
   },
-  // 2) Pooler transaction mode IPv4
+  // 2) Pooler session mode 5432
   {
-    label: 'Pooler transaction (6543)',
-    host: 'aws-0-sa-east-1.pooler.supabase.com',
-    port: 6543,
-    user: `postgres.${PROJECT}`,
+    label: `Pooler .env (${DB_HOST}:5432)`,
+    host: DB_HOST,
+    port: 5432,
+    user: DB_USER,
     password: PASSWORD,
     database: 'postgres',
     ssl: { rejectUnauthorized: false },
