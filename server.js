@@ -59,10 +59,14 @@ app.use('/api/promotions',    require('./routes/promotions'));
 // ── Health check ──────────────────────────────────────────
 app.get('/health', (_, res) => res.json({ status: 'ok', version: '1.0.0', ts: new Date() }));
 
-// ── SPA fallback (rotas do frontend) ──────────────────────
+// ── Rotas do frontend ─────────────────────────────────────
+app.get('/', (_, res) => res.sendFile(path.join(__dirname, 'landing.html')));
+app.get('/app', (_, res) => res.sendFile(path.join(__dirname, 'index.html')));
+app.get('/app/*', (_, res) => res.sendFile(path.join(__dirname, 'index.html')));
+
 app.get('*', (req, res) => {
   if (req.path.startsWith('/api')) return res.status(404).json({ error: 'Rota não encontrada' });
-  res.sendFile(path.join(__dirname, 'index.html'));
+  res.sendFile(path.join(__dirname, 'landing.html'));
 });
 
 // ── Error handler ─────────────────────────────────────────

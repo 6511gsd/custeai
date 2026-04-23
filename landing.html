@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CusteAi — Precifique certo, lucre mais</title>
+<meta name="description" content="O sistema inteligente de gestão de CMV e precificação para restaurantes. Saiba exatamente quanto custa cada prato e quanto você deve cobrar.">
+<style>
+  :root {
+    --green: #00d97e;
+    --green2: #00b865;
+    --dark: #0a0e1a;
+    --dark2: #111827;
+    --dark3: #1a2235;
+    --text1: #f0f4ff;
+    --text2: #9ba8bf;
+    --text3: #5a6a85;
+    --border: rgba(255,255,255,0.08);
+    --card-bg: rgba(255,255,255,0.04);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; background: var(--dark); color: var(--text1); overflow-x: hidden; }
+
+  /* ── NAVBAR ── */
+  nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 5%; height: 68px;
+    background: rgba(10,14,26,0.85);
+    backdrop-filter: blur(16px);
+    border-bottom: 1px solid var(--border);
+    transition: all 0.3s;
+  }
+  nav.scrolled { background: rgba(10,14,26,0.98); }
+  .nav-logo { font-size: 22px; font-weight: 900; letter-spacing: -0.5px; text-decoration: none; color: var(--text1); }
+  .nav-logo span { color: var(--green); }
+  .nav-links { display: flex; gap: 32px; list-style: none; }
+  .nav-links a { color: var(--text2); text-decoration: none; font-size: 14px; font-weight: 500; transition: color 0.2s; }
+  .nav-links a:hover { color: var(--text1); }
+  .nav-actions { display: flex; gap: 12px; align-items: center; }
+  .btn { display: inline-flex; align-items: center; justify-content: center; padding: 9px 20px; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; text-decoration: none; transition: all 0.2s; border: none; }
+  .btn-ghost { background: transparent; color: var(--text2); }
+  .btn-ghost:hover { color: var(--text1); background: rgba(255,255,255,0.06); }
+  .btn-primary { background: var(--green); color: #000; }
+  .btn-primary:hover { background: var(--green2); transform: translateY(-1px); box-shadow: 0 8px 24px rgba(0,217,126,0.3); }
+  .btn-outline { background: transparent; color: var(--green); border: 1.5px solid var(--green); }
+  .btn-outline:hover { background: rgba(0,217,126,0.08); }
+  .hamburger { display: none; flex-direction: column; gap: 5px; cursor: pointer; padding: 4px; }
+  .hamburger span { width: 22px; height: 2px; background: var(--text1); border-radius: 2px; transition: all 0.3s; }
+
+  /* ── HERO ── */
+  .hero {
+    min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    text-align: center; padding: 120px 5% 80px;
+    background: radial-gradient(ellipse 80% 60% at 50% 0%, rgba(0,217,126,0.12) 0%, transparent 70%);
+    position: relative; overflow: hidden;
+  }
+  .hero::before {
+    content: ''; position: absolute; inset: 0;
+    background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%2300d97e' fill-opacity='0.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+    pointer-events: none;
+  }
+  .hero-badge { display: inline-flex; align-items: center; gap: 6px; background: rgba(0,217,126,0.12); border: 1px solid rgba(0,217,126,0.3); border-radius: 100px; padding: 6px 14px; font-size: 12px; font-weight: 600; color: var(--green); margin-bottom: 24px; }
+  .hero h1 { font-size: clamp(36px, 6vw, 72px); font-weight: 900; line-height: 1.1; letter-spacing: -2px; max-width: 900px; margin-bottom: 20px; }
+  .hero h1 .highlight { color: var(--green); position: relative; }
+  .hero p { font-size: clamp(16px, 2vw, 20px); color: var(--text2); max-width: 600px; line-height: 1.6; margin-bottom: 36px; }
+  .hero-cta { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin-bottom: 60px; }
+  .btn-lg { padding: 14px 28px; font-size: 16px; border-radius: 10px; }
+  .hero-stats { display: flex; gap: 48px; justify-content: center; flex-wrap: wrap; }
+  .stat { text-align: center; }
+  .stat-num { font-size: 32px; font-weight: 900; color: var(--green); letter-spacing: -1px; }
+  .stat-label { font-size: 13px; color: var(--text2); margin-top: 2px; }
+
+  /* ── SECTIONS ── */
+  section { padding: 80px 5%; }
+  .section-tag { display: inline-block; background: rgba(0,217,126,0.12); border: 1px solid rgba(0,217,126,0.25); color: var(--green); font-size: 12px; font-weight: 700; padding: 4px 12px; border-radius: 100px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 16px; }
+  .section-title { font-size: clamp(28px, 4vw, 44px); font-weight: 900; letter-spacing: -1.5px; line-height: 1.15; margin-bottom: 14px; }
+  .section-sub { font-size: 16px; color: var(--text2); line-height: 1.6; max-width: 560px; }
+  .center { text-align: center; align-items: center; }
+  .center .section-sub { margin: 0 auto; }
+
+  /* ── CMV SECTION ── */
+  .cmv-section { background: var(--dark2); }
+  .cmv-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 60px; align-items: center; max-width: 1100px; margin: 0 auto; }
+  .cmv-text { }
+  .cmv-cards { display: flex; flex-direction: column; gap: 16px; }
+  .cmv-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 14px; padding: 20px 24px; display: flex; gap: 16px; align-items: flex-start; transition: border-color 0.3s; }
+  .cmv-card:hover { border-color: rgba(0,217,126,0.3); }
+  .cmv-icon { font-size: 28px; flex-shrink: 0; }
+  .cmv-card-title { font-weight: 700; font-size: 15px; margin-bottom: 4px; }
+  .cmv-card-text { font-size: 13px; color: var(--text2); line-height: 1.5; }
+
+  /* ── PROBLEMA ── */
+  .problema-section { background: linear-gradient(135deg, var(--dark) 0%, var(--dark3) 100%); }
+  .problema-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; max-width: 1100px; margin: 48px auto 0; }
+  .problema-card { background: rgba(255,60,60,0.05); border: 1px solid rgba(255,60,60,0.15); border-radius: 14px; padding: 28px; text-align: center; }
+  .problema-num { font-size: 48px; font-weight: 900; color: #ff6060; letter-spacing: -2px; }
+  .problema-desc { font-size: 13px; color: var(--text2); margin-top: 8px; line-height: 1.5; }
+
+  /* ── VIDEOS ── */
+  .videos-section { background: var(--dark2); }
+  .videos-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; max-width: 1100px; margin: 48px auto 0; }
+  .video-card { background: var(--dark3); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; transition: transform 0.3s, border-color 0.3s; }
+  .video-card:hover { transform: translateY(-4px); border-color: rgba(0,217,126,0.3); }
+  .video-embed { position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; }
+  .video-embed iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: none; }
+  .video-info { padding: 16px 20px; }
+  .video-creator { font-size: 12px; color: var(--green); font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+  .video-title { font-size: 14px; font-weight: 600; color: var(--text1); line-height: 1.4; }
+
+  /* ── FEATURES ── */
+  .features-section { }
+  .features-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; max-width: 1100px; margin: 48px auto 0; }
+  .feature-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 16px; padding: 28px; transition: all 0.3s; }
+  .feature-card:hover { border-color: rgba(0,217,126,0.3); background: rgba(0,217,126,0.04); transform: translateY(-2px); }
+  .feature-emoji { font-size: 32px; margin-bottom: 14px; }
+  .feature-title { font-size: 16px; font-weight: 700; margin-bottom: 8px; }
+  .feature-text { font-size: 13px; color: var(--text2); line-height: 1.6; }
+
+  /* ── COMO FUNCIONA ── */
+  .como-section { background: var(--dark2); }
+  .steps { display: flex; flex-direction: column; gap: 0; max-width: 700px; margin: 48px auto 0; position: relative; }
+  .steps::before { content: ''; position: absolute; left: 23px; top: 0; bottom: 0; width: 2px; background: linear-gradient(to bottom, var(--green), transparent); }
+  .step { display: flex; gap: 24px; align-items: flex-start; padding-bottom: 36px; position: relative; }
+  .step-num { width: 48px; height: 48px; border-radius: 50%; background: var(--green); color: #000; font-weight: 900; font-size: 18px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; z-index: 1; }
+  .step-content { padding-top: 10px; }
+  .step-title { font-weight: 700; font-size: 16px; margin-bottom: 6px; }
+  .step-text { font-size: 14px; color: var(--text2); line-height: 1.6; }
+
+  /* ── PLANOS ── */
+  .plans-section { }
+  .plans-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; max-width: 960px; margin: 48px auto 0; }
+  .plan-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 20px; padding: 32px; position: relative; }
+  .plan-card.featured { border-color: var(--green); background: rgba(0,217,126,0.06); }
+  .plan-badge { position: absolute; top: -12px; left: 50%; transform: translateX(-50%); background: var(--green); color: #000; font-size: 11px; font-weight: 800; padding: 4px 14px; border-radius: 100px; white-space: nowrap; }
+  .plan-name { font-size: 18px; font-weight: 800; margin-bottom: 4px; }
+  .plan-price { font-size: 42px; font-weight: 900; letter-spacing: -2px; color: var(--green); margin: 16px 0 4px; }
+  .plan-price span { font-size: 16px; font-weight: 500; color: var(--text2); letter-spacing: 0; }
+  .plan-desc { font-size: 13px; color: var(--text2); margin-bottom: 24px; line-height: 1.5; }
+  .plan-features { list-style: none; display: flex; flex-direction: column; gap: 10px; margin-bottom: 28px; }
+  .plan-features li { font-size: 13px; color: var(--text2); display: flex; gap: 8px; align-items: flex-start; }
+  .plan-features li::before { content: '✓'; color: var(--green); font-weight: 700; flex-shrink: 0; }
+
+  /* ── CTA FINAL ── */
+  .cta-section { background: radial-gradient(ellipse 80% 100% at 50% 50%, rgba(0,217,126,0.15) 0%, transparent 70%); text-align: center; padding: 100px 5%; }
+  .cta-section h2 { font-size: clamp(28px, 5vw, 54px); font-weight: 900; letter-spacing: -1.5px; margin-bottom: 16px; }
+  .cta-section p { font-size: 16px; color: var(--text2); max-width: 500px; margin: 0 auto 36px; line-height: 1.6; }
+
+  /* ── FOOTER ── */
+  footer { background: var(--dark2); border-top: 1px solid var(--border); padding: 48px 5%; }
+  .footer-grid { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 40px; max-width: 1100px; margin: 0 auto 40px; }
+  .footer-brand p { font-size: 13px; color: var(--text2); line-height: 1.6; margin-top: 12px; max-width: 260px; }
+  .footer-col h4 { font-size: 13px; font-weight: 700; color: var(--text1); margin-bottom: 14px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .footer-col a { display: block; font-size: 13px; color: var(--text2); text-decoration: none; margin-bottom: 8px; transition: color 0.2s; }
+  .footer-col a:hover { color: var(--green); }
+  .footer-bottom { text-align: center; font-size: 12px; color: var(--text3); border-top: 1px solid var(--border); padding-top: 24px; max-width: 1100px; margin: 0 auto; }
+
+  /* ── MOBILE ── */
+  @media (max-width: 768px) {
+    .nav-links, .nav-actions .btn-ghost { display: none; }
+    .hamburger { display: flex; }
+    .mobile-menu { display: none; position: fixed; top: 68px; left: 0; right: 0; background: var(--dark2); padding: 24px 5%; border-bottom: 1px solid var(--border); z-index: 99; }
+    .mobile-menu.open { display: block; }
+    .mobile-menu a { display: block; padding: 12px 0; color: var(--text1); text-decoration: none; font-size: 16px; font-weight: 500; border-bottom: 1px solid var(--border); }
+    .mobile-menu a:last-child { border-bottom: none; }
+    .cmv-grid, .problema-grid, .videos-grid, .features-grid, .plans-grid { grid-template-columns: 1fr; }
+    .footer-grid { grid-template-columns: 1fr 1fr; }
+    .hero-stats { gap: 28px; }
+    .steps::before { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ── NAVBAR ── -->
+<nav id="navbar">
+  <a href="/" class="nav-logo">Custe<span>Ai</span></a>
+  <ul class="nav-links">
+    <li><a href="#cmv">O que é CMV</a></li>
+    <li><a href="#como">Como funciona</a></li>
+    <li><a href="#recursos">Recursos</a></li>
+    <li><a href="#planos">Planos</a></li>
+    <li><a href="#videos">Conteúdo</a></li>
+  </ul>
+  <div class="nav-actions">
+    <a href="/app" class="btn btn-ghost">Entrar</a>
+    <a href="/app" class="btn btn-primary">Criar conta grátis</a>
+  </div>
+  <div class="hamburger" onclick="toggleMenu()" id="hamburger">
+    <span></span><span></span><span></span>
+  </div>
+</nav>
+
+<!-- MENU MOBILE -->
+<div class="mobile-menu" id="mobile-menu">
+  <a href="#cmv" onclick="toggleMenu()">O que é CMV</a>
+  <a href="#como" onclick="toggleMenu()">Como funciona</a>
+  <a href="#recursos" onclick="toggleMenu()">Recursos</a>
+  <a href="#planos" onclick="toggleMenu()">Planos</a>
+  <a href="#videos" onclick="toggleMenu()">Conteúdo</a>
+  <a href="/app" style="color:var(--green);font-weight:700;margin-top:8px">→ Acessar o sistema</a>
+</div>
+
+<!-- ── HERO ── -->
+<section class="hero">
+  <div class="hero-badge">🚀 Sistema gratuito para começar</div>
+  <h1>Precifique certo.<br>Pare de vender<br><span class="highlight">no prejuízo.</span></h1>
+  <p>O CusteAi calcula o CMV de cada prato, sugere o preço ideal por canal e mostra exatamente quanto você está lucrando — ou perdendo.</p>
+  <div class="hero-cta">
+    <a href="/app" class="btn btn-primary btn-lg">Começar gratuitamente</a>
+    <a href="#como" class="btn btn-outline btn-lg">Ver como funciona</a>
+  </div>
+  <div class="hero-stats">
+    <div class="stat"><div class="stat-num">89%</div><div class="stat-label">dos restaurantes fecham<br>por má precificação</div></div>
+    <div class="stat"><div class="stat-num">CMV</div><div class="stat-label">controlado = negócio<br>lucrativo e sustentável</div></div>
+    <div class="stat"><div class="stat-num">3×</div><div class="stat-label">mais lucro com<br>gestão de custos</div></div>
+  </div>
+</section>
+
+<!-- ── O PROBLEMA ── -->
+<section class="problema-section" id="problema">
+  <div style="max-width:1100px;margin:0 auto;text-align:center">
+    <div class="section-tag">A realidade do setor</div>
+    <h2 class="section-title">Por que tantos restaurantes fecham?</h2>
+    <p class="section-sub" style="margin:0 auto">A maioria dos donos de restaurante trabalha muito, mas não sabe se está lucrando. O problema começa na precificação errada.</p>
+    <div class="problema-grid">
+      <div class="problema-card">
+        <div class="problema-num">89%</div>
+        <div class="problema-desc">dos restaurantes fecham nos primeiros 5 anos, principalmente por não controlar custos</div>
+      </div>
+      <div class="problema-card">
+        <div class="problema-num">60%</div>
+        <div class="problema-desc">dos donos nunca calcularam o CMV real dos seus pratos — precificam no "achismo"</div>
+      </div>
+      <div class="problema-card">
+        <div class="problema-num">27%</div>
+        <div class="problema-desc">é a comissão média do iFood — sem considerar isso, você perde dinheiro em cada pedido</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── O QUE É CMV ── -->
+<section class="cmv-section" id="cmv">
+  <div class="cmv-grid">
+    <div class="cmv-text">
+      <div class="section-tag">Entenda o CMV</div>
+      <h2 class="section-title">O CMV é o termômetro da saúde do seu restaurante</h2>
+      <p class="section-sub">CMV (Custo da Mercadoria Vendida) é o percentual do preço de venda que vai para pagar os ingredientes. Controlar isso é a diferença entre lucro e prejuízo.</p>
+    </div>
+    <div class="cmv-cards">
+      <div class="cmv-card">
+        <div class="cmv-icon">🎯</div>
+        <div>
+          <div class="cmv-card-title">CMV ideal: 25% a 35%</div>
+          <div class="cmv-card-text">Para a maioria dos restaurantes, o CMV saudável fica entre 25% e 35% do preço de venda. Acima disso, você pode estar vendendo no prejuízo.</div>
+        </div>
+      </div>
+      <div class="cmv-card">
+        <div class="cmv-icon">📊</div>
+        <div>
+          <div class="cmv-card-title">Ficha técnica é obrigatória</div>
+          <div class="cmv-card-text">Sem ficha técnica, você não sabe o custo real de cada prato. O CusteAi monta sua ficha técnica automaticamente com os ingredientes cadastrados.</div>
+        </div>
+      </div>
+      <div class="cmv-card">
+        <div class="cmv-icon">🛵</div>
+        <div>
+          <div class="cmv-card-title">iFood cobra mais do que você imagina</div>
+          <div class="cmv-card-text">Com comissão de 27%, embalagem e marketing, seu prato de R$30 pode gerar menos de R$3 de lucro. O CusteAi calcula o preço certo para cada plataforma.</div>
+        </div>
+      </div>
+      <div class="cmv-card">
+        <div class="cmv-icon">💡</div>
+        <div>
+          <div class="cmv-card-title">Situação fiscal impacta no preço</div>
+          <div class="cmv-card-text">MEI, Simples Nacional ou Lucro Presumido — cada regime tem uma alíquota diferente que precisa entrar no cálculo do seu preço de venda.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── VÍDEOS ── -->
+<section class="videos-section" id="videos">
+  <div style="max-width:1100px;margin:0 auto;text-align:center">
+    <div class="section-tag">Aprenda com os melhores</div>
+    <h2 class="section-title">Conteúdo de quem entende de CMV</h2>
+    <p class="section-sub">Os maiores especialistas em gestão de restaurantes do Brasil explicam por que precificar certo é questão de sobrevivência.</p>
+    <div class="videos-grid">
+      <div class="video-card">
+        <div class="video-embed">
+          <!-- Substitua VIDEO_ID_1 pelo ID do vídeo do Diego Schisler -->
+          <iframe src="https://www.youtube.com/embed/VIDEO_ID_1" title="Diego Schisler" allowfullscreen></iframe>
+        </div>
+        <div class="video-info">
+          <div class="video-creator">Diego Schisler</div>
+          <div class="video-title">Como calcular o CMV do seu restaurante</div>
+        </div>
+      </div>
+      <div class="video-card">
+        <div class="video-embed">
+          <!-- Substitua VIDEO_ID_2 pelo ID do vídeo do Magno -->
+          <iframe src="https://www.youtube.com/embed/VIDEO_ID_2" title="Magno" allowfullscreen></iframe>
+        </div>
+        <div class="video-info">
+          <div class="video-creator">Magno</div>
+          <div class="video-title">Precificação inteligente para restaurantes</div>
+        </div>
+      </div>
+      <div class="video-card">
+        <div class="video-embed">
+          <!-- Substitua VIDEO_ID_3 pelo ID do vídeo do Guardião do CMV -->
+          <iframe src="https://www.youtube.com/embed/VIDEO_ID_3" title="Guardião do CMV" allowfullscreen></iframe>
+        </div>
+        <div class="video-info">
+          <div class="video-creator">Guardião do CMV</div>
+          <div class="video-title">Por que seu restaurante não lucra</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── COMO FUNCIONA ── -->
+<section class="como-section" id="como">
+  <div style="max-width:1100px;margin:0 auto;text-align:center">
+    <div class="section-tag">Simples de usar</div>
+    <h2 class="section-title">Do cadastro ao lucro em 4 passos</h2>
+    <p class="section-sub">Você não precisa ser contador. Em menos de 30 minutos o sistema já está calculando seus custos.</p>
+    <div class="steps" style="text-align:left">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-content">
+          <div class="step-title">Cadastre seus ingredientes</div>
+          <div class="step-text">Informe o nome, unidade, quantidade e preço de compra. O sistema calcula o custo por unidade automaticamente. Também aceita importação de Nota Fiscal (NF-e).</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-content">
+          <div class="step-title">Monte sua ficha técnica</div>
+          <div class="step-text">Selecione os ingredientes de cada prato e informe a quantidade usada. O CMV é calculado em tempo real conforme você monta a receita.</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-content">
+          <div class="step-title">Configure suas taxas e situação fiscal</div>
+          <div class="step-text">Informe seu faturamento, taxas de cartão, impostos (MEI, Simples, LTDA) e comissões de marketplace. O sistema usa esses dados para calcular o preço ideal.</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">4</div>
+        <div class="step-content">
+          <div class="step-title">Veja o preço sugerido por canal</div>
+          <div class="step-text">Para cada produto, o sistema mostra o preço ideal para o salão, iFood, Rappi e 99Food — garantindo sua margem de lucro em todos os canais.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── RECURSOS ── -->
+<section id="recursos">
+  <div style="max-width:1100px;margin:0 auto;text-align:center">
+    <div class="section-tag">Tudo que você precisa</div>
+    <h2 class="section-title">Recursos feitos para restaurantes</h2>
+    <p class="section-sub">Do ingrediente ao preço final, o CusteAi cobre toda a gestão financeira do seu negócio.</p>
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="feature-emoji">📊</div>
+        <div class="feature-title">Ficha Técnica com CMV automático</div>
+        <div class="feature-text">Monte receitas vinculando ingredientes. O CMV é calculado automaticamente e atualizado quando os preços mudam.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-emoji">💰</div>
+        <div class="feature-title">Preço sugerido por canal</div>
+        <div class="feature-text">Preço ideal para salão, iFood, Rappi e 99Food com base no CMV alvo e comissões configuradas pela sua empresa.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-emoji">🏛️</div>
+        <div class="feature-title">Situação fiscal integrada</div>
+        <div class="feature-text">MEI, Simples Nacional, Lucro Presumido ou Real. A alíquota de imposto entra automaticamente no cálculo do preço.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-emoji">🏷️</div>
+        <div class="feature-title">Promoções de ingredientes</div>
+        <div class="feature-text">Achou um ingrediente em promoção? Cadastre o preço promocional e veja o impacto real nos custos das suas fichas técnicas.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-emoji">📄</div>
+        <div class="feature-title">Importação de NF-e</div>
+        <div class="feature-text">Importe a Nota Fiscal eletrônica em XML e todos os ingredientes são cadastrados automaticamente com preços atualizados.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-emoji">📈</div>
+        <div class="feature-title">Dashboard financeiro</div>
+        <div class="feature-text">Visão completa do faturamento, CMV médio, ponto de equilíbrio e saúde financeira da empresa em tempo real.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-emoji">👥</div>
+        <div class="feature-title">Multi-usuário</div>
+        <div class="feature-text">Convide sua equipe com diferentes níveis de acesso. Owner, admin, editor e visualizador — cada um vê o que precisa.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-emoji">🔒</div>
+        <div class="feature-title">Dados seguros na nuvem</div>
+        <div class="feature-text">Seus dados ficam salvos com segurança no banco de dados. Acesse de qualquer dispositivo com login e senha.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-emoji">🛵</div>
+        <div class="feature-title">Calculadora de marketplace</div>
+        <div class="feature-text">Simule qualquer produto em qualquer plataforma. Descubra o preço mínimo para não vender no prejuízo no delivery.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── PLANOS ── -->
+<section class="plans-section" id="planos" style="background:var(--dark2)">
+  <div style="max-width:1100px;margin:0 auto;text-align:center">
+    <div class="section-tag">Planos e preços</div>
+    <h2 class="section-title">Comece grátis, cresça quando quiser</h2>
+    <p class="section-sub">Sem cartão de crédito para começar. Cancele quando quiser.</p>
+    <div class="plans-grid">
+      <div class="plan-card">
+        <div class="plan-name">Básico</div>
+        <div class="plan-price">R$29<span>/mês</span></div>
+        <div class="plan-desc">Ideal para quem está começando a controlar os custos.</div>
+        <ul class="plan-features">
+          <li>Até 50 ingredientes</li>
+          <li>5 fichas técnicas</li>
+          <li>Calculadora de CMV</li>
+          <li>1 usuário</li>
+          <li>Suporte por e-mail</li>
+        </ul>
+        <a href="/app" class="btn btn-outline" style="width:100%">Começar grátis</a>
+      </div>
+      <div class="plan-card featured">
+        <div class="plan-badge">Mais popular</div>
+        <div class="plan-name">Profissional</div>
+        <div class="plan-price">R$49<span>/mês</span></div>
+        <div class="plan-desc">Para restaurantes que querem controle total dos custos.</div>
+        <ul class="plan-features">
+          <li>Ingredientes ilimitados</li>
+          <li>Fichas técnicas ilimitadas</li>
+          <li>Preço sugerido por canal</li>
+          <li>Importação de NF-e</li>
+          <li>Promoções de ingredientes</li>
+          <li>1 usuário</li>
+          <li>Suporte prioritário</li>
+        </ul>
+        <a href="/app" class="btn btn-primary" style="width:100%">Começar grátis</a>
+      </div>
+      <div class="plan-card">
+        <div class="plan-name">Empresarial</div>
+        <div class="plan-price">R$99<span>/mês</span></div>
+        <div class="plan-desc">Para redes e grupos com múltiplas unidades.</div>
+        <ul class="plan-features">
+          <li>Tudo do Profissional</li>
+          <li>Até 5 usuários</li>
+          <li>Multi-empresa</li>
+          <li>Relatórios avançados</li>
+          <li>API de integração</li>
+          <li>Suporte dedicado</li>
+        </ul>
+        <a href="/app" class="btn btn-outline" style="width:100%">Falar com vendas</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── CTA FINAL ── -->
+<section class="cta-section">
+  <div class="section-tag">Grátis para começar</div>
+  <h2>Chega de vender<br>sem saber o lucro.</h2>
+  <p>Cadastre-se agora e em menos de 30 minutos você saberá o CMV real de cada prato do seu cardápio.</p>
+  <a href="/app" class="btn btn-primary btn-lg">Criar minha conta grátis →</a>
+</section>
+
+<!-- ── FOOTER ── -->
+<footer>
+  <div class="footer-grid">
+    <div class="footer-brand">
+      <div style="font-size:20px;font-weight:900">Custe<span style="color:var(--green)">Ai</span></div>
+      <p>O sistema inteligente de gestão de CMV e precificação para restaurantes brasileiros.</p>
+    </div>
+    <div class="footer-col">
+      <h4>Produto</h4>
+      <a href="#recursos">Recursos</a>
+      <a href="#como">Como funciona</a>
+      <a href="#planos">Planos</a>
+      <a href="/app">Acessar sistema</a>
+    </div>
+    <div class="footer-col">
+      <h4>Conteúdo</h4>
+      <a href="#videos">Vídeos</a>
+      <a href="#cmv">O que é CMV</a>
+    </div>
+    <div class="footer-col">
+      <h4>Contato</h4>
+      <a href="mailto:suporte@custeai.com.br">suporte@custeai.com.br</a>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    © 2025 CusteAi. Todos os direitos reservados.
+  </div>
+</footer>
+
+<script>
+  // Navbar scroll
+  window.addEventListener('scroll', () => {
+    document.getElementById('navbar').classList.toggle('scrolled', window.scrollY > 20);
+  });
+
+  // Mobile menu
+  function toggleMenu() {
+    const menu = document.getElementById('mobile-menu');
+    const hbg = document.getElementById('hamburger');
+    menu.classList.toggle('open');
+    hbg.classList.toggle('open');
+  }
+
+  // Smooth scroll para âncoras
+  document.querySelectorAll('a[href^="#"]').forEach(a => {
+    a.addEventListener('click', e => {
+      const target = document.querySelector(a.getAttribute('href'));
+      if (target) { e.preventDefault(); target.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+    });
+  });
+
+  // Animação de entrada nos cards
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        e.target.style.opacity = '1';
+        e.target.style.transform = 'translateY(0)';
+      }
+    });
+  }, { threshold: 0.1 });
+
+  document.querySelectorAll('.feature-card, .cmv-card, .plan-card, .video-card, .step').forEach(el => {
+    el.style.opacity = '0';
+    el.style.transform = 'translateY(20px)';
+    el.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+    observer.observe(el);
+  });
+</script>
+</body>
+</html>
