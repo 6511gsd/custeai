@@ -586,45 +586,165 @@ input[type=checkbox]{accent-color:var(--green);width:15px;height:15px;cursor:poi
       <!-- ─── CONFIG FINANCEIRA ─────────────────────────── -->
       <div class="page" id="page-config-fin">
         <div style="font-size:16px;font-weight:800;margin-bottom:4px">Configuração Financeira</div>
-        <div class="muted small mb-16">Taxas, impostos e faturamento da empresa</div>
-        <div class="grid-2">
-          <div>
-            <div class="card mb-16">
-              <div class="card-title mb-16" style="font-size:14px">📈 Faturamento</div>
-              <div class="form-group">
-                <label class="form-label">Faturamento Mensal (R$)</label>
-                <input class="form-input mono" id="fin-faturamento" type="number" placeholder="60000" oninput="recalcDNA()">
+        <div class="muted small mb-16">Taxas, impostos, situação fiscal e faturamento da empresa</div>
+        <div class="tabs" style="margin-bottom:16px">
+          <div class="tab active" onclick="switchFinTab('geral',this)">📈 Geral</div>
+          <div class="tab" onclick="switchFinTab('fiscal',this)">🏛️ Situação Fiscal</div>
+          <div class="tab" onclick="switchFinTab('marketplace',this)">🛵 Marketplaces</div>
+          <div class="tab" onclick="switchFinTab('cmv',this)">🎯 Objetivo CMV</div>
+        </div>
+
+        <!-- Tab Geral -->
+        <div id="fin-tab-geral">
+          <div class="grid-2">
+            <div>
+              <div class="card mb-16">
+                <div class="card-title mb-16" style="font-size:14px">📈 Faturamento</div>
+                <div class="form-group">
+                  <label class="form-label">Faturamento Mensal (R$)</label>
+                  <input class="form-input mono" id="fin-faturamento" type="number" placeholder="60000" oninput="recalcDNA()">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Total Custo Fixo (R$) <span class="muted small">(calculado automaticamente)</span></label>
+                  <input class="form-input mono" id="fin-cf-total" type="number" placeholder="0" readonly style="opacity:0.6">
+                </div>
               </div>
-              <div class="form-group">
-                <label class="form-label">Total Custo Fixo (R$) <span class="muted small">(calculado automaticamente)</span></label>
-                <input class="form-input mono" id="fin-cf-total" type="number" placeholder="0" readonly style="opacity:0.6">
+              <div class="card">
+                <div class="card-title mb-16" style="font-size:14px">💳 Taxas</div>
+                <div class="form-row">
+                  <div class="form-group"><label class="form-label">Débito (%)</label><input class="form-input mono" id="fin-debito" type="number" value="2" step="0.1" oninput="recalcDNA()"></div>
+                  <div class="form-group"><label class="form-label">Crédito (%)</label><input class="form-input mono" id="fin-credito" type="number" value="5" step="0.1" oninput="recalcDNA()"></div>
+                </div>
+                <div class="form-row">
+                  <div class="form-group"><label class="form-label">Imposto (%)</label><input class="form-input mono" id="fin-imposto" type="number" value="0" step="0.1" oninput="recalcDNA()"></div>
+                  <div class="form-group"><label class="form-label">Royalties (%)</label><input class="form-input mono" id="fin-royalties" type="number" value="0" step="0.1" oninput="recalcDNA()"></div>
+                </div>
+                <div class="form-row">
+                  <div class="form-group"><label class="form-label">Marketing (%)</label><input class="form-input mono" id="fin-marketing" type="number" value="0" step="0.1" oninput="recalcDNA()"></div>
+                  <div class="form-group"><label class="form-label">Voucher/Refeição (%)</label><input class="form-input mono" id="fin-voucher" type="number" value="0" step="0.1" oninput="recalcDNA()"></div>
+                </div>
+                <button class="btn btn-primary btn-full mt-8" onclick="saveFinConfig()">💾 Salvar Configuração</button>
               </div>
             </div>
+            <div>
+              <div class="card mb-16">
+                <div class="card-title mb-16" style="font-size:14px">⚡ Composição de Custos</div>
+                <div id="dna-breakdown"></div>
+              </div>
+              <div class="card">
+                <div class="card-title mb-16" style="font-size:14px">📊 Análise do C.F</div>
+                <div id="cf-analysis"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tab Fiscal -->
+        <div id="fin-tab-fiscal" style="display:none">
+          <div class="grid-2">
             <div class="card">
-              <div class="card-title mb-16" style="font-size:14px">💳 Taxas</div>
+              <div class="card-title mb-16" style="font-size:14px">🏛️ Situação Fiscal da Empresa</div>
+              <div class="form-group">
+                <label class="form-label">Enquadramento</label>
+                <select class="form-select" id="fin-fiscal-type" onchange="onFiscalTypeChange()">
+                  <option value="mei">MEI — Microempreendedor Individual</option>
+                  <option value="simples_comercio">ME / Simples Nacional — Comércio (Anexo I)</option>
+                  <option value="simples_servico">ME / Simples Nacional — Serviços (Anexo III)</option>
+                  <option value="simples_industria">ME / Simples Nacional — Indústria (Anexo II)</option>
+                  <option value="lucro_presumido">LTDA / Lucro Presumido</option>
+                  <option value="lucro_real">LTDA / SA — Lucro Real</option>
+                  <option value="autonomo">Autônomo / Pessoa Física</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Alíquota efetiva de imposto (%)</label>
+                <input class="form-input mono" id="fin-simples-aliquota" type="number" step="0.01" placeholder="0" oninput="recalcDNA()">
+                <div class="form-hint" id="fin-fiscal-hint"></div>
+              </div>
+              <div class="info-box" style="margin-top:12px" id="fin-fiscal-info"></div>
+              <button class="btn btn-primary btn-full mt-16" onclick="saveFinConfig()">💾 Salvar</button>
+            </div>
+            <div class="card">
+              <div class="card-title mb-12" style="font-size:14px">📋 Referência de Alíquotas</div>
+              <div style="font-size:12px;color:var(--text2);line-height:1.8">
+                <div style="margin-bottom:8px"><strong style="color:var(--green)">MEI</strong><br>Imposto fixo mensal (não % do faturamento). Use 0% aqui.</div>
+                <div style="margin-bottom:8px"><strong style="color:var(--green)">Simples Nacional — Comércio</strong><br>Faturamento até 180k/ano: ~4% | 360k: ~5,2% | 720k: ~6,8% | 1,8M: ~9,5%</div>
+                <div style="margin-bottom:8px"><strong style="color:var(--green)">Simples Nacional — Serviços</strong><br>Faturamento até 180k/ano: ~6% | 360k: ~8,7% | 720k: ~10,2% | 1,8M: ~14,7%</div>
+                <div style="margin-bottom:8px"><strong style="color:var(--green)">Lucro Presumido (Alimentação)</strong><br>PIS/COFINS: 3,65% + IRPJ/CSLL: ~8,6% = ~12,25% total</div>
+                <div><strong style="color:var(--green)">Lucro Real</strong><br>Varia conforme resultado — consulte seu contador.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tab Marketplace -->
+        <div id="fin-tab-marketplace" style="display:none">
+          <div class="grid-2">
+            <div class="card">
+              <div class="card-title mb-16" style="font-size:14px">🛵 Comissões por Plataforma (%)</div>
               <div class="form-row">
-                <div class="form-group"><label class="form-label">Débito (%)</label><input class="form-input mono" id="fin-debito" type="number" value="2" step="0.1" oninput="recalcDNA()"></div>
-                <div class="form-group"><label class="form-label">Crédito (%)</label><input class="form-input mono" id="fin-credito" type="number" value="5" step="0.1" oninput="recalcDNA()"></div>
+                <div class="form-group"><label class="form-label">iFood (%)</label><input class="form-input mono" id="fin-ifood" type="number" value="27" step="0.1" placeholder="27"></div>
+                <div class="form-group"><label class="form-label">Rappi (%)</label><input class="form-input mono" id="fin-rappi" type="number" value="30" step="0.1" placeholder="30"></div>
               </div>
               <div class="form-row">
-                <div class="form-group"><label class="form-label">Imposto (%)</label><input class="form-input mono" id="fin-imposto" type="number" value="0" step="0.1" oninput="recalcDNA()"></div>
-                <div class="form-group"><label class="form-label">Royalties (%)</label><input class="form-input mono" id="fin-royalties" type="number" value="0" step="0.1" oninput="recalcDNA()"></div>
+                <div class="form-group"><label class="form-label">99Food (%)</label><input class="form-input mono" id="fin-99food" type="number" value="12" step="0.1" placeholder="12"></div>
+                <div class="form-group"><label class="form-label"></label></div>
               </div>
+              <div class="card-title mb-12 mt-16" style="font-size:14px">💰 Custos Operacionais de Entrega</div>
               <div class="form-row">
-                <div class="form-group"><label class="form-label">Marketing (%)</label><input class="form-input mono" id="fin-marketing" type="number" value="0" step="0.1" oninput="recalcDNA()"></div>
-                <div class="form-group"><label class="form-label">Voucher/Refeição (%)</label><input class="form-input mono" id="fin-voucher" type="number" value="0" step="0.1" oninput="recalcDNA()"></div>
+                <div class="form-group"><label class="form-label">Custo Motoboy (R$/entrega)</label><input class="form-input mono" id="fin-motoboy" type="number" step="0.01" placeholder="0"></div>
+                <div class="form-group"><label class="form-label">Embalagem adicional (R$/pedido)</label><input class="form-input mono" id="fin-embalagem-mkt" type="number" step="0.01" placeholder="0"></div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Marketing/Campanhas mensais (R$)</label>
+                <input class="form-input mono" id="fin-mkt-marketing" type="number" step="0.01" placeholder="0">
               </div>
               <button class="btn btn-primary btn-full mt-8" onclick="saveFinConfig()">💾 Salvar Configuração</button>
             </div>
+            <div class="card">
+              <div class="card-title mb-12" style="font-size:14px">💡 Como funcionam as comissões</div>
+              <div style="font-size:12px;color:var(--text2);line-height:1.9">
+                <div style="margin-bottom:10px"><strong style="color:var(--green)">iFood</strong><br>Plano Básico: 12% | Plano Entrega: 27% | com motoboy iFood incluído</div>
+                <div style="margin-bottom:10px"><strong style="color:var(--green)">Rappi</strong><br>Comissão: 27–30% dependendo do contrato</div>
+                <div style="margin-bottom:10px"><strong style="color:var(--green)">99Food</strong><br>Comissão: 12% (sem entrega inclusa)</div>
+                <div class="info-box mt-8">Os preços sugeridos nas fichas técnicas usarão automaticamente essas comissões salvas.</div>
+              </div>
+            </div>
           </div>
-          <div>
-            <div class="card mb-16">
-              <div class="card-title mb-16" style="font-size:14px">⚡ Composição de Custos</div>
-              <div id="dna-breakdown"></div>
+        </div>
+
+        <!-- Tab Objetivo CMV -->
+        <div id="fin-tab-cmv" style="display:none">
+          <div class="grid-2">
+            <div class="card">
+              <div class="card-title mb-16" style="font-size:14px">🎯 Objetivo de CMV por Canal</div>
+              <div class="form-group">
+                <label class="form-label">CMV objetivo — Canal Próprio (%)</label>
+                <input class="form-input mono" id="fin-target-proprio" type="number" value="30" step="0.1" placeholder="30">
+                <div class="form-hint">Padrão restaurantes: 25–35%</div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">CMV objetivo — Marketplaces (%)</label>
+                <input class="form-input mono" id="fin-target-mkt" type="number" value="25" step="0.1" placeholder="25">
+                <div class="form-hint">Recomendado menor que canal próprio (comissão extra)</div>
+              </div>
+              <div class="info-box mt-8">
+                O sistema usará esses valores para calcular o <strong>preço sugerido</strong> em cada ficha técnica, tanto para canal próprio quanto para cada marketplace.
+              </div>
+              <button class="btn btn-primary btn-full mt-16" onclick="saveFinConfig()">💾 Salvar</button>
             </div>
             <div class="card">
-              <div class="card-title mb-16" style="font-size:14px">📊 Análise do C.F</div>
-              <div id="cf-analysis"></div>
+              <div class="card-title mb-12" style="font-size:14px">📖 Referência de CMV</div>
+              <div style="font-size:12px;color:var(--text2);line-height:1.9">
+                <div><strong style="color:var(--green)">CMV ideal por segmento</strong></div>
+                <div>Restaurante à la carte: 28–35%</div>
+                <div>Fast food / lanchonete: 25–32%</div>
+                <div>Pizzaria: 22–30%</div>
+                <div>Confeitaria / doceria: 25–35%</div>
+                <div>Bar / petiscaria: 20–28%</div>
+                <div style="margin-top:10px"><strong style="color:var(--amber)">⚠️ Marketplaces</strong></div>
+                <div>Com comissão de 27–30%, reduzir CMV alvo para 20–25% mantém a margem.</div>
+              </div>
             </div>
           </div>
         </div>
@@ -960,6 +1080,51 @@ input[type=checkbox]{accent-color:var(--green);width:15px;height:15px;cursor:poi
   </div>
 </div>
 
+<!-- MODAL PROMOÇÃO DE INGREDIENTE -->
+<div class="overlay" id="modal-promo">
+  <div class="modal">
+    <div class="modal-head"><div class="modal-title">🏷️ Cadastrar Promoção</div><button class="close-btn" onclick="closeModal('modal-promo')">×</button></div>
+    <div class="modal-body">
+      <input type="hidden" id="promo-ing-id">
+      <div style="font-size:13px;font-weight:700;margin-bottom:12px" id="promo-ing-name"></div>
+      <div class="info-box mb-16">Encontrou esse ingrediente em promoção? Cadastre aqui e o sistema vai mostrar a diferença de custo e o impacto nas fichas técnicas.</div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Preço total da promoção (R$)</label>
+          <input class="form-input mono" id="promo-price" type="number" step="0.01" placeholder="45.00" oninput="calcPromoUnit()">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Quantidade <span id="promo-unit-label"></span></label>
+          <input class="form-input mono" id="promo-qty" type="number" step="0.001" placeholder="5" oninput="calcPromoUnit()">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Válida até (opcional)</label>
+        <input class="form-input" id="promo-valid" type="date">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Observação</label>
+        <input class="form-input" id="promo-notes" type="text" placeholder="Ex: Atacado do bairro, compra mínima 5kg">
+      </div>
+      <div id="promo-calc-result"></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-outline" onclick="closeModal('modal-promo')">Cancelar</button>
+      <button class="btn btn-primary" style="width:auto" onclick="savePromo()">🏷️ Salvar Promoção</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL PREÇO SUGERIDO POR CANAL -->
+<div class="overlay" id="modal-pricing">
+  <div class="modal" style="max-width:560px">
+    <div class="modal-head"><div class="modal-title">💰 Preço Sugerido por Canal</div><button class="close-btn" onclick="closeModal('modal-pricing')">×</button></div>
+    <div class="modal-body" id="pricing-modal-body">
+      <div class="muted small" style="text-align:center;padding:30px">Carregando...</div>
+    </div>
+  </div>
+</div>
+
 <!-- TOASTS -->
 <div class="toast-area" id="toast-area"></div>
 
@@ -985,6 +1150,7 @@ const S = {
   products: [],
   fixedCosts: [],
   finConfig: {},
+  promotions: [],
   nfItems: [],
   nfModalItems: [],
   fichaIngRows: [],
@@ -1196,13 +1362,14 @@ function doLogout() {
 // LOAD APP DATA
 // ============================================================
 async function loadAppData() {
-  const [ings, prods, cf, fin, sub, comp] = await Promise.all([
+  const [ings, prods, cf, fin, sub, comp, promos] = await Promise.all([
     apiJSON('/api/ingredients'),
     apiJSON('/api/products'),
     apiJSON('/api/fixed-costs'),
     apiJSON('/api/financial/config'),
     apiJSON('/api/subscriptions/status'),
     apiJSON('/api/companies/me'),
+    apiJSON('/api/promotions'),
   ]);
   if (ings) S.ingredients = ings;
   if (prods) S.products = prods;
@@ -1210,6 +1377,7 @@ async function loadAppData() {
   if (fin) S.finConfig = fin;
   if (sub) S.sub = sub;
   if (comp) S.company = comp;
+  if (promos) S.promotions = promos;
   saveLocal();
   renderSidebar();
   renderDashboard();
@@ -1347,20 +1515,26 @@ function renderIngredientes() {
     grid.innerHTML=`<div class="card" style="grid-column:1/-1"><div class="empty"><div class="empty-icon">🥩</div><div class="empty-title">Nenhum ingrediente</div><div class="empty-sub">Adicione manualmente ou importe uma NF-e</div><div class="flex-gap" style="justify-content:center"><button class="btn btn-outline" onclick="openModal('modal-nf')">📄 Importar NF</button><button class="btn btn-primary" onclick="openModal('modal-ing')">+ Adicionar</button></div></div></div>`;
     return;
   }
-  grid.innerHTML = S.ingredients.map(i=>`
+  grid.innerHTML = S.ingredients.map(i=>{
+    const promo = S.promotions.find(p=>p.ingredient_id===i.id);
+    const promoTag = promo ? `<span style="background:var(--amber);color:#000;font-size:9px;font-weight:700;padding:2px 6px;border-radius:4px;margin-left:4px">PROMO</span>` : '';
+    const promoInfo = promo ? `<div style="font-size:11px;color:var(--amber);margin-top:2px">🏷️ Promo: ${fmt(promo.promo_unit_cost)}/${i.unit} (${promo.valid_until?'até '+promo.valid_until:'sem validade'})</div>` : '';
+    return `
     <div class="ing-card">
       <div class="ing-img">${i.image_url?`<img src="${i.image_url}" alt="${i.name}">`:`<div class="no-img">${CAT_EMOJIS[i.category]||'🥩'}</div>`}</div>
       <div class="ing-body">
-        <div class="ing-name">${i.name}</div>
+        <div class="ing-name">${i.name}${promoTag}</div>
         <div class="ing-cat">${i.category||'—'} ${i.supplier?'· '+i.supplier:''}</div>
         <div class="ing-price">${i.unit_cost>0?fmt(i.unit_cost)+'/'+(i.unit||'und'):'Sem custo'}</div>
+        ${promoInfo}
         <div class="ing-actions">
           <button class="btn btn-ghost btn-xs" style="flex:1" onclick="editIng('${i.id}')">✏️ Editar</button>
+          <button class="btn btn-outline btn-xs" onclick="openPromoModal('${i.id}')" title="Cadastrar promoção">🏷️</button>
           <button class="btn btn-danger btn-xs" onclick="deleteIng('${i.id}')">🗑️</button>
         </div>
       </div>
-    </div>
-  `).join('');
+    </div>`;
+  }).join('');
 }
 
 function calcIngCusto() {
@@ -1455,6 +1629,112 @@ async function deleteIng(id) {
 }
 
 // ============================================================
+// PROMOÇÕES DE INGREDIENTES
+// ============================================================
+function openPromoModal(ingId) {
+  const ing = S.ingredients.find(i=>i.id===ingId);
+  if (!ing) return;
+  document.getElementById('promo-ing-id').value = ingId;
+  document.getElementById('promo-ing-name').textContent = `Ingrediente: ${ing.name} (custo atual: ${fmt(ing.unit_cost||0)}/${ing.unit})`;
+  document.getElementById('promo-unit-label').textContent = `(${ing.unit})`;
+  document.getElementById('promo-price').value = '';
+  document.getElementById('promo-qty').value = '';
+  document.getElementById('promo-valid').value = '';
+  document.getElementById('promo-notes').value = '';
+  document.getElementById('promo-calc-result').innerHTML = '';
+  openModal('modal-promo');
+}
+
+function calcPromoUnit() {
+  const ingId = document.getElementById('promo-ing-id').value;
+  const ing = S.ingredients.find(i=>i.id===ingId);
+  const price = parseFloat(document.getElementById('promo-price').value)||0;
+  const qty = parseFloat(document.getElementById('promo-qty').value)||0;
+  const el = document.getElementById('promo-calc-result');
+  if (!price||!qty||!ing) { el.innerHTML=''; return; }
+  const unitCost = price/qty;
+  const diff = unitCost - (ing.unit_cost||0);
+  const pct = ing.unit_cost>0 ? (diff/ing.unit_cost)*100 : 0;
+  const col = diff<0?'var(--green)':'var(--red)';
+  const icon = diff<0?'📉':'📈';
+  el.innerHTML=`
+    <div class="result-panel mt-8">
+      <div class="result-row"><span class="r-label">Custo promocional</span><span class="r-val green">${fmt(unitCost)}/${ing.unit}</span></div>
+      <div class="result-row"><span class="r-label">Custo atual</span><span class="r-val">${fmt(ing.unit_cost||0)}/${ing.unit}</span></div>
+      <div class="result-row"><span class="r-label">Diferença ${icon}</span><span class="r-val" style="color:${col}">${diff<0?'-':'+'} ${fmt(Math.abs(diff))} (${pct.toFixed(1)}%)</span></div>
+    </div>
+    ${diff<0?`<div class="info-box mt-8" style="border-color:var(--green)">✅ Você economiza <strong>${fmt(Math.abs(diff))}/${ing.unit}</strong> usando essa promoção!</div>`:''}
+  `;
+}
+
+async function savePromo() {
+  const ingredient_id = document.getElementById('promo-ing-id').value;
+  const promo_price = parseFloat(document.getElementById('promo-price').value)||0;
+  const promo_quantity = parseFloat(document.getElementById('promo-qty').value)||0;
+  const valid_until = document.getElementById('promo-valid').value||null;
+  const notes = document.getElementById('promo-notes').value||null;
+  if (!promo_price||!promo_quantity) { toast('Preencha preço e quantidade', 'err'); return; }
+  const result = await apiJSON('/api/promotions', {method:'POST', body:JSON.stringify({ingredient_id,promo_price,promo_quantity,valid_until,notes})});
+  if (!result) return;
+  S.promotions = S.promotions.filter(p=>p.ingredient_id!==ingredient_id);
+  S.promotions.push(result);
+  saveLocal();
+  closeModal('modal-promo');
+  renderIngredientes();
+  toast('Promoção cadastrada!', 'ok');
+}
+
+// ============================================================
+// PREÇO SUGERIDO POR CANAL
+// ============================================================
+async function openPricingModal(productId) {
+  openModal('modal-pricing');
+  document.getElementById('pricing-modal-body').innerHTML = '<div class="muted small" style="text-align:center;padding:30px">Calculando preços...</div>';
+  const data = await apiJSON(`/api/financial/pricing/${productId}`);
+  if (!data) { closeModal('modal-pricing'); return; }
+  const channels = [
+    {name:'🏪 Canal Próprio', key:'proprio', color:'var(--green)', commission:null},
+    {name:'🟧 iFood', key:'ifood', color:'#ff5200', commission:data.ifood?.commission},
+    {name:'🟡 Rappi', key:'rappi', color:'#ffcc00', commission:data.rappi?.commission},
+    {name:'⚫ 99Food', key:'novenovenove', color:'#888', commission:data.novenovenove?.commission},
+  ];
+  const rows = channels.map(ch=>{
+    const d = data[ch.key];
+    if (!d) return '';
+    const sp = parseFloat(d.suggested_price||0);
+    const diff = data.current_price>0 ? sp - data.current_price : null;
+    const diffHtml = diff!==null ? `<span style="font-size:11px;color:${diff>0?'var(--amber)':'var(--green)'};margin-left:6px">${diff>0?'+':''}${fmt(diff)}</span>` : '';
+    const commHtml = ch.commission!=null ? `<div style="font-size:11px;color:var(--text3)">Comissão: ${ch.commission}%</div>` : '';
+    return `
+      <div style="border:1px solid var(--border2);border-radius:10px;padding:14px;margin-bottom:10px">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div>
+            <div style="font-weight:700;font-size:13px;color:${ch.color}">${ch.name}</div>
+            ${commHtml}
+            <div style="font-size:11px;color:var(--text3)">CMV alvo: ${d.target_cmv_pct}%</div>
+          </div>
+          <div style="text-align:right">
+            <div style="font-size:20px;font-weight:800;color:${ch.color}">${sp>0?fmt(sp):'—'}</div>
+            ${diffHtml}
+          </div>
+        </div>
+      </div>`;
+  }).join('');
+
+  document.getElementById('pricing-modal-body').innerHTML = `
+    <div class="result-panel mb-16">
+      <div class="result-row"><span class="r-label">Produto</span><span class="r-val">${data.product_name}</span></div>
+      <div class="result-row"><span class="r-label">CMV por porção</span><span class="r-val amber">${fmt(parseFloat(data.cmv_per_portion||0))}</span></div>
+      <div class="result-row"><span class="r-label">Preço atual</span><span class="r-val">${data.current_price>0?fmt(data.current_price):'Não definido'}</span></div>
+      ${data.current_cmv_pct?`<div class="result-row"><span class="r-label">% CMV atual</span><span class="r-val">${data.current_cmv_pct}%</span></div>`:''}
+    </div>
+    <div style="font-size:12px;font-weight:700;color:var(--text3);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px">Preço Sugerido por Canal</div>
+    ${rows}
+    <div class="info-box" style="font-size:11px">Configure comissões e objetivo de CMV em <strong>Configuração Financeira → Marketplaces</strong> e <strong>→ Objetivo CMV</strong>.</div>
+  `;
+}
+
+// ============================================================
 // FICHAS TÉCNICAS
 // ============================================================
 function renderFichas() {
@@ -1468,7 +1748,7 @@ function renderFichas() {
     const col=pctL>=15?'var(--green)':pctL>=10?'var(--amber)':'var(--red)';
     const badge=pctL>=15?'badge-green':pctL>=10?'badge-amber':'badge-red';
     const status=pctL>=15?'Ótimo':pctL>=10?'Aceitável':'Baixo';
-    return `<tr><td><strong>${p.name}</strong></td><td><span class="badge badge-gray">${p.category||'—'}</span></td><td class="mono">${fmt(p.sale_price||0)}</td><td class="mono amber">${fmt(p.cmv_total||0)}</td><td class="mono">${fmtPct(pctCMV)}</td><td class="mono" style="color:${col}">${dna>0?fmt(ld):'—'}</td><td class="mono" style="color:${col}">${dna>0?fmtPct(pctL):'—'}</td><td><span class="badge ${dna>0?badge:'badge-gray'}">${dna>0?status:'Config.'}</span></td><td><button class="btn btn-danger btn-xs" onclick="deleteFicha('${p.id}')">🗑️</button></td></tr>`;
+    return `<tr><td><strong>${p.name}</strong></td><td><span class="badge badge-gray">${p.category||'—'}</span></td><td class="mono">${fmt(p.sale_price||0)}</td><td class="mono amber">${fmt(p.cmv_total||0)}</td><td class="mono">${fmtPct(pctCMV)}</td><td class="mono" style="color:${col}">${dna>0?fmt(ld):'—'}</td><td class="mono" style="color:${col}">${dna>0?fmtPct(pctL):'—'}</td><td><span class="badge ${dna>0?badge:'badge-gray'}">${dna>0?status:'Config.'}</span></td><td style="white-space:nowrap"><button class="btn btn-outline btn-xs" onclick="openPricingModal('${p.id}')" title="Ver preço sugerido por canal">💰</button> <button class="btn btn-danger btn-xs" onclick="deleteFicha('${p.id}')">🗑️</button></td></tr>`;
   }).join('')}</tbody></table>`;
 }
 
@@ -1602,10 +1882,41 @@ async function deleteCF(id){if(!confirm('Remover?'))return;await apiJSON(`/api/f
 // ============================================================
 // CONFIG FINANCEIRA (DNA)
 // ============================================================
+function switchFinTab(tab, el) {
+  ['geral','fiscal','marketplace','cmv'].forEach(t => {
+    const d = document.getElementById('fin-tab-'+t);
+    if (d) d.style.display = t===tab ? 'block' : 'none';
+  });
+  document.querySelectorAll('#page-config-fin .tab').forEach(t => t.classList.remove('active'));
+  if (el) el.classList.add('active');
+}
+
+const FISCAL_HINTS = {
+  mei: 'MEI paga valor fixo mensal (não % do faturamento). Deixe 0% aqui e lembre do DAS mensal.',
+  simples_comercio: 'Simples Nacional Comércio — alíquota varia de 4% a 19,5% conforme faturamento acumulado.',
+  simples_servico: 'Simples Nacional Serviços — alíquota varia de 6% a 33% conforme faturamento acumulado.',
+  simples_industria: 'Simples Nacional Indústria — alíquota varia de 4,5% a 30%.',
+  lucro_presumido: 'Lucro Presumido: PIS/COFINS (3,65%) + IRPJ/CSLL (~8,6%) = ~12,25% total para alimentação.',
+  lucro_real: 'Lucro Real: alíquota real apurada. Consulte seu contador para o valor correto.',
+  autonomo: 'Pessoa Física: ISS (2–5%) + IRPF conforme faixa. Consulte contador.',
+};
+
+function onFiscalTypeChange() {
+  const type = document.getElementById('fin-fiscal-type')?.value;
+  const hint = document.getElementById('fin-fiscal-hint');
+  const info = document.getElementById('fin-fiscal-info');
+  if (hint) hint.textContent = FISCAL_HINTS[type] || '';
+  if (info) {
+    const defaults = {mei:'0',simples_comercio:'4',simples_servico:'6',simples_industria:'4.5',lucro_presumido:'12.25',lucro_real:'',autonomo:'5'};
+    const val = defaults[type];
+    info.innerHTML = val ? `💡 Sugestão padrão para este enquadramento: <strong>${val}%</strong> — ajuste conforme seu contador.` : '';
+  }
+}
+
 function calcDNAValue() {
   const fat=parseFloat(S.finConfig.monthly_revenue||0);
   const cfTotal=S.fixedCosts.reduce((a,b)=>a+parseFloat(b.amount||0),0);
-  const cfPct=fat>0?(cfTotal/fat)*100:parseFloat(S.finConfig.monthly_revenue||33);
+  const cfPct=fat>0?(cfTotal/fat)*100:0;
   const deb=parseFloat(S.finConfig.debit_card_rate||2);
   const cred=parseFloat(S.finConfig.credit_card_rate||5);
   const vch=parseFloat(S.finConfig.voucher_rate||0);
@@ -1618,29 +1929,46 @@ function calcDNAValue() {
 }
 
 function renderFinConfig() {
-  // Fill inputs
-  document.getElementById('fin-faturamento').value=S.finConfig.monthly_revenue||'';
-  document.getElementById('fin-debito').value=S.finConfig.debit_card_rate??2;
-  document.getElementById('fin-credito').value=S.finConfig.credit_card_rate??5;
-  document.getElementById('fin-imposto').value=S.finConfig.tax_rate??0;
-  document.getElementById('fin-royalties').value=S.finConfig.royalty_rate??0;
-  document.getElementById('fin-marketing').value=S.finConfig.marketing_rate??0;
-  document.getElementById('fin-voucher').value=S.finConfig.voucher_rate??0;
+  const fc = S.finConfig;
+  // Tab Geral
+  document.getElementById('fin-faturamento').value = fc.monthly_revenue||'';
+  document.getElementById('fin-debito').value      = fc.debit_card_rate??2;
+  document.getElementById('fin-credito').value     = fc.credit_card_rate??5;
+  document.getElementById('fin-imposto').value     = fc.tax_rate??0;
+  document.getElementById('fin-royalties').value   = fc.royalty_rate??0;
+  document.getElementById('fin-marketing').value   = fc.marketing_rate??0;
+  document.getElementById('fin-voucher').value     = fc.voucher_rate??0;
   const cfTotal=S.fixedCosts.reduce((a,b)=>a+parseFloat(b.amount||0),0);
-  document.getElementById('fin-cf-total').value=cfTotal.toFixed(2);
+  document.getElementById('fin-cf-total').value    = cfTotal.toFixed(2);
+  // Tab Fiscal
+  const ftEl = document.getElementById('fin-fiscal-type');
+  if (ftEl) { ftEl.value = fc.fiscal_type||'mei'; onFiscalTypeChange(); }
+  const faEl = document.getElementById('fin-simples-aliquota');
+  if (faEl) faEl.value = fc.simples_aliquota??0;
+  // Tab Marketplace
+  const set = (id, val) => { const e=document.getElementById(id); if(e) e.value=val; };
+  set('fin-ifood', fc.ifood_commission??27);
+  set('fin-rappi', fc.rappi_commission??30);
+  set('fin-99food', fc.novenovenove_commission??12);
+  set('fin-motoboy', fc.marketplace_motoboy??0);
+  set('fin-embalagem-mkt', fc.marketplace_packaging??0);
+  set('fin-mkt-marketing', fc.marketplace_marketing??0);
+  // Tab CMV
+  set('fin-target-proprio', fc.target_cmv_proprio??30);
+  set('fin-target-mkt', fc.target_cmv_marketplace??25);
   recalcDNA();
 }
 
 function recalcDNA() {
-  const fat=parseFloat(document.getElementById('fin-faturamento').value)||0;
+  const fat=parseFloat(document.getElementById('fin-faturamento')?.value)||0;
   const cfTotal=S.fixedCosts.reduce((a,b)=>a+parseFloat(b.amount||0),0);
   const cfPct=fat>0?(cfTotal/fat)*100:0;
-  const deb=parseFloat(document.getElementById('fin-debito').value)||0;
-  const cred=parseFloat(document.getElementById('fin-credito').value)||0;
-  const imp=parseFloat(document.getElementById('fin-imposto').value)||0;
-  const roy=parseFloat(document.getElementById('fin-royalties').value)||0;
-  const mkt=parseFloat(document.getElementById('fin-marketing').value)||0;
-  const vch=parseFloat(document.getElementById('fin-voucher').value)||0;
+  const deb=parseFloat(document.getElementById('fin-debito')?.value)||0;
+  const cred=parseFloat(document.getElementById('fin-credito')?.value)||0;
+  const imp=parseFloat(document.getElementById('fin-imposto')?.value)||0;
+  const roy=parseFloat(document.getElementById('fin-royalties')?.value)||0;
+  const mkt=parseFloat(document.getElementById('fin-marketing')?.value)||0;
+  const vch=parseFloat(document.getElementById('fin-voucher')?.value)||0;
   const mediaCartao=(deb+cred)/2;
   const mediaFinal=vch>0?(mediaCartao+vch)/2:mediaCartao;
   const total=cfPct+mediaFinal+imp+roy+mkt;
@@ -1672,10 +2000,23 @@ function recalcDNA() {
 }
 
 async function saveFinConfig() {
-  const payload={monthly_revenue:parseFloat(document.getElementById('fin-faturamento').value)||0,debit_card_rate:parseFloat(document.getElementById('fin-debito').value)||0,credit_card_rate:parseFloat(document.getElementById('fin-credito').value)||0,tax_rate:parseFloat(document.getElementById('fin-imposto').value)||0,royalty_rate:parseFloat(document.getElementById('fin-royalties').value)||0,marketing_rate:parseFloat(document.getElementById('fin-marketing').value)||0,voucher_rate:parseFloat(document.getElementById('fin-voucher').value)||0};
-  const result=await apiJSON('/api/financial/config',{method:'PUT',body:JSON.stringify(payload)});
+  const g = id => parseFloat(document.getElementById(id)?.value)||0;
+  const s = id => document.getElementById(id)?.value||null;
+  const payload = {
+    monthly_revenue: g('fin-faturamento'),
+    debit_card_rate: g('fin-debito'), credit_card_rate: g('fin-credito'),
+    voucher_rate: g('fin-voucher'), tax_rate: g('fin-imposto'),
+    royalty_rate: g('fin-royalties'), marketing_rate: g('fin-marketing'),
+    fiscal_type: s('fin-fiscal-type'), simples_aliquota: g('fin-simples-aliquota'),
+    ifood_commission: g('fin-ifood'), rappi_commission: g('fin-rappi'),
+    novenovenove_commission: g('fin-99food'),
+    marketplace_motoboy: g('fin-motoboy'), marketplace_packaging: g('fin-embalagem-mkt'),
+    marketplace_marketing: g('fin-mkt-marketing'),
+    target_cmv_proprio: g('fin-target-proprio'), target_cmv_marketplace: g('fin-target-mkt'),
+  };
+  const result = await apiJSON('/api/financial/config', {method:'PUT', body:JSON.stringify(payload)});
   if (!result) return;
-  S.finConfig=result;
+  S.finConfig = result;
   saveLocal(); renderDashboard();
   toast('Configuração financeira salva!');
 }

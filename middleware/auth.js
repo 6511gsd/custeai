@@ -49,24 +49,9 @@ async function requireAuth(req, res, next) {
   }
 }
 
-// ── Verificar assinatura ativa ────────────────────────────
+// ── Verificar assinatura ativa (desativado — sistema gratuito) ──
 async function requireSubscription(req, res, next) {
-  await requireAuth(req, res, async () => {
-    const { sub_status, trial_ends_at } = req.user;
-
-    const isTrialActive = sub_status === 'trial' && new Date(trial_ends_at) > new Date();
-    const isActive      = sub_status === 'active';
-
-    if (!isTrialActive && !isActive) {
-      return res.status(402).json({
-        error: 'Assinatura necessária',
-        code: 'SUBSCRIPTION_REQUIRED',
-        sub_status,
-        trial_ends_at,
-      });
-    }
-    next();
-  });
+  return requireAuth(req, res, next);
 }
 
 // ── Verificar papel (role) ────────────────────────────────

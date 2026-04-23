@@ -54,6 +54,7 @@ app.use('/api/financial',     require('./routes/financial'));
 app.use('/api/subscriptions', require('./routes/subscriptions'));
 app.use('/api/import',        require('./routes/import'));
 app.use('/api/admin',         require('./routes/admin'));
+app.use('/api/promotions',    require('./routes/promotions'));
 
 // ── Health check ──────────────────────────────────────────
 app.get('/health', (_, res) => res.json({ status: 'ok', version: '1.0.0', ts: new Date() }));
