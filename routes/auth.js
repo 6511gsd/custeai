@@ -6,6 +6,7 @@ const bcrypt  = require('bcryptjs');
 const { v4: uuidv4 } = require('uuid');
 const { query, withTransaction } = require('../config/database');
 const { generateTokens, JWT_SECRET, REFRESH_EXPIRES } = require('../middleware/auth');
+const { sendPasswordReset } = require('../config/email');
 const jwt = require('jsonwebtoken');
 
 // ── POST /api/auth/register ───────────────────────────────
@@ -153,19 +154,21 @@ router.post('/logout', async (req, res) => {
 router.post('/forgot-password', async (req, res) => {
   try {
     const { email } = req.body;
-    const { rows } = await query('SELECT id FROM users WHERE email = $1', [email?.toLowerCase()]);
+    if (!email) return res.status(400).json({ error: 'E-mail obrigatório' });
+    const { rows } = await query('SELECT id, full_name FROM users WHERE email = $1', [email.toLowerCase()]);
     if (rows.length) {
       const token   = uuidv4();
       const expires = new Date(Date.now() + 60 * 60 * 1000);
-      await query(`
-        UPDATE users SET reset_password_token = $1, reset_password_expires = $2 WHERE id = $3
-      `, [token, expires, rows[0].id]);
-      // TODO: enviar e-mail com link de reset
-      // await sendEmail({ to: email, template: 'reset-password', data: { token } })
-      console.log(`[AUTH] Reset token para ${email}: ${token}`);
+      await query(
+        'UPDATE users SET reset_password_token=$1, reset_password_expires=$2 WHERE id=$3',
+        [token, expires, rows[0].id]
+      );
+      await sendPasswordReset(email.toLowerCase(), token, rows[0].full_name);
     }
+    // Sempre retorna sucesso (não revela se e-mail existe)
     res.json({ message: 'Se o e-mail existir, você receberá as instruções em breve.' });
-  } catch {
+  } catch (err) {
+    console.error('[AUTH] forgot-password:', err.message);
     res.status(500).json({ error: 'Erro ao processar solicitação' });
   }
 });

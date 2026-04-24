@@ -552,6 +552,30 @@ input[type=checkbox]{accent-color:var(--green);width:15px;height:15px;cursor:poi
       <button class="btn btn-primary" id="btn-forgot">Enviar link de recuperação</button>
       <div class="auth-switch"><a id="link-back-login">← Voltar ao login</a></div>
     </div>
+
+    <!-- RESET PASSWORD -->
+    <div class="auth-box" id="view-reset" style="display:none">
+      <div class="auth-title">Nova senha</div>
+      <div class="auth-sub">Digite sua nova senha abaixo</div>
+      <input type="hidden" id="reset-token-input">
+      <div class="form-group">
+        <label class="form-label">Nova senha</label>
+        <div class="input-wrap">
+          <input class="form-input" id="reset-pass" type="password" placeholder="mín. 8 caracteres">
+          <span class="input-icon" onclick="togglePass('reset-pass',this)">👁️</span>
+        </div>
+        <div class="form-hint">Mínimo 8 caracteres</div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Confirmar nova senha</label>
+        <div class="input-wrap">
+          <input class="form-input" id="reset-pass-confirm" type="password" placeholder="repita a senha">
+          <span class="input-icon" onclick="togglePass('reset-pass-confirm',this)">👁️</span>
+        </div>
+      </div>
+      <button class="btn btn-primary" id="btn-reset-pass">Salvar nova senha</button>
+      <div class="auth-switch"><a id="link-back-login2">← Voltar ao login</a></div>
+    </div>
   </div>
 </div>
 
@@ -1519,9 +1543,35 @@ async function doRegister() {
 async function doForgot() {
   const email = document.getElementById('forgot-email').value.trim();
   if (!email) { toast('Informe o e-mail', 'err'); return; }
-  await apiJSON('/api/auth/forgot-password', { method:'POST', body: JSON.stringify({ email }) });
-  toast('Se o e-mail existir, você receberá as instruções em breve', 'info');
-  showView('view-login');
+  const btn = document.getElementById('btn-forgot');
+  btn.disabled = true; btn.textContent = 'Enviando...';
+  try {
+    await apiJSON('/api/auth/forgot-password', { method:'POST', body: JSON.stringify({ email }) });
+    toast('Se o e-mail existir, você receberá as instruções em breve', 'info');
+    showView('view-login');
+  } catch(e) {
+    toast('Erro ao enviar. Tente novamente.', 'err');
+  } finally {
+    btn.disabled = false; btn.textContent = 'Enviar link de recuperação';
+  }
+}
+
+async function doResetPass() {
+  const token = document.getElementById('reset-token-input').value;
+  const password = document.getElementById('reset-pass').value;
+  const confirm = document.getElementById('reset-pass-confirm').value;
+  if (!password || password.length < 8) { toast('Senha deve ter ao menos 8 caracteres', 'err'); return; }
+  if (password !== confirm) { toast('As senhas não coincidem', 'err'); return; }
+  const btn = document.getElementById('btn-reset-pass');
+  btn.disabled = true; btn.textContent = 'Salvando...';
+  try {
+    const data = await apiJSON('/api/auth/reset-password', { method:'POST', body: JSON.stringify({ token, password }) });
+    if (data) { toast('Senha redefinida! Faça login.', 'ok'); showView('view-login'); }
+  } catch(e) {
+    toast('Erro ao redefinir. Tente novamente.', 'err');
+  } finally {
+    btn.disabled = false; btn.textContent = 'Salvar nova senha';
+  }
 }
 
 function doLogout() {
@@ -2550,7 +2600,9 @@ document.addEventListener('DOMContentLoaded', function() {
   if (q('link-to-register')) q('link-to-register').addEventListener('click', () => showView('view-register'));
   if (q('link-to-login'))    q('link-to-login').addEventListener('click', () => showView('view-login'));
   if (q('link-back-login'))  q('link-back-login').addEventListener('click', () => showView('view-login'));
+  if (q('link-back-login2')) q('link-back-login2').addEventListener('click', () => showView('view-login'));
   if (q('link-forgot'))      q('link-forgot').addEventListener('click', () => showView('view-forgot'));
+  if (q('btn-reset-pass'))   q('btn-reset-pass').addEventListener('click', doResetPass);
   // Enter nos campos de login
   q('login-pass') && q('login-pass').addEventListener('keydown', e => { if(e.key==='Enter') doLogin(); });
   q('login-email') && q('login-email').addEventListener('keydown', e => { if(e.key==='Enter') doLogin(); });
@@ -2558,17 +2610,53 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 (async function boot() {
+  // Detecta link de reset de senha na URL
+  const urlParams = new URLSearchParams(window.location.search);
+  const resetToken = urlParams.get('reset');
+  if (resetToken) {
+    history.replaceState({}, '', '/app'); // limpa URL
+    showScreen('screen-auth');
+    showView('view-reset');
+    document.getElementById('reset-token-input').value = resetToken;
+    return;
+  }
+
   loadLocal();
+
   if (S.accessToken && S.user) {
     renderSidebar();
     renderDashboard();
     showScreen('screen-app');
-    // Reload data em background
-    loadAppData();
+    // Tenta renovar token se estiver próximo de expirar, depois carrega dados
+    try {
+      await loadAppData();
+    } catch(e) {
+      // se loadAppData falhar por token expirado, tenta refresh uma vez
+      const refreshed = await tryRefreshToken();
+      if (refreshed) { await loadAppData(); }
+      else { doLogout(); }
+    }
   } else {
     showScreen('screen-auth');
   }
 })();
+
+async function tryRefreshToken() {
+  if (!S.refreshToken) return false;
+  try {
+    const r = await fetch(API + '/api/auth/refresh', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ refreshToken: S.refreshToken }),
+    });
+    if (!r.ok) return false;
+    const data = await r.json();
+    S.accessToken = data.accessToken;
+    S.refreshToken = data.refreshToken;
+    saveLocal();
+    return true;
+  } catch { return false; }
+}
 </script>
 </body>
 </html>
