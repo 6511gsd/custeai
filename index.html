@@ -1130,6 +1130,34 @@ input[type=checkbox]{accent-color:var(--green);width:15px;height:15px;cursor:poi
 
 <!-- ══════════ SCRIPTS ══════════════════════════════════════ -->
 <script>
+// ── Patch global: converte onclick em addEventListener (CSP-safe) ──
+(function() {
+  function patchOnclicks(root) {
+    if (!root || !root.querySelectorAll) return;
+    root.querySelectorAll('[onclick]').forEach(function(el) {
+      if (el._onclickPatched) return;
+      el._onclickPatched = true;
+      var code = el.getAttribute('onclick');
+      el.addEventListener('click', function(e) {
+        try { (new Function('event', code)).call(el, e); } catch(err) { console.error('[onclick]', err); }
+      });
+    });
+  }
+  // Patch elementos existentes
+  document.addEventListener('DOMContentLoaded', function() { patchOnclicks(document); });
+  // Patch elementos gerados dinamicamente via innerHTML
+  var mo = new MutationObserver(function(mutations) {
+    mutations.forEach(function(m) {
+      m.addedNodes.forEach(function(n) {
+        if (n.nodeType === 1) { patchOnclicks(n); }
+      });
+    });
+  });
+  document.addEventListener('DOMContentLoaded', function() {
+    mo.observe(document.body, { childList: true, subtree: true });
+  });
+})();
+
 // ============================================================
 // CONFIG — ajuste conforme seu backend
 // ============================================================
