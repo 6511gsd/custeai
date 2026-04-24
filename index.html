@@ -1089,13 +1089,38 @@ input[type=checkbox]{accent-color:var(--green);width:15px;height:15px;cursor:poi
       <div class="form-row3">
         <div class="form-group"><label class="form-label">Qtd. comprada</label><input class="form-input mono" id="ing-qtd" type="number" placeholder="10" step="0.001" oninput="calcIngCusto()"></div>
         <div class="form-group"><label class="form-label">Unidade</label>
-          <select class="form-select" id="ing-und" onchange="calcIngCusto()">
-            <option>kg</option><option>g</option><option>L</option><option>ml</option><option>un</option><option>cx</option><option>pct</option>
+          <select class="form-select" id="ing-und" onchange="onIngUnitChange()">
+            <option>kg</option><option>g</option><option>L</option><option>ml</option><option>un</option><option>cx</option><option>pct</option><option>fardo</option><option>saco</option>
           </select>
         </div>
         <div class="form-group"><label class="form-label">Valor total R$</label><input class="form-input mono" id="ing-valor" type="number" placeholder="150.00" step="0.01" oninput="calcIngCusto()"></div>
       </div>
+
+      <!-- Campos extras para embalagens (cx, pct, fardo, saco) -->
+      <div id="ing-embalagem-fields" style="display:none;background:var(--s2);border:1px solid var(--border2);border-radius:8px;padding:14px;margin-bottom:14px">
+        <div style="font-size:12px;font-weight:600;color:var(--text2);margin-bottom:10px;text-transform:uppercase;letter-spacing:0.3px">📦 Detalhes da embalagem</div>
+        <div class="form-row">
+          <div class="form-group" style="margin-bottom:0">
+            <label class="form-label">Itens por <span id="ing-emb-label">embalagem</span></label>
+            <input class="form-input mono" id="ing-emb-qty" type="number" placeholder="Ex: 30" step="1" min="1" oninput="calcIngCusto()">
+            <div class="form-hint">Ex: 1 caixa tem 30 unidades</div>
+          </div>
+          <div class="form-group" style="margin-bottom:0">
+            <label class="form-label">Unidade de cada item</label>
+            <select class="form-select" id="ing-emb-unit" onchange="calcIngCusto()">
+              <option value="un">un (unidade)</option>
+              <option value="kg">kg</option>
+              <option value="g">g</option>
+              <option value="L">L</option>
+              <option value="ml">ml</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
       <div class="result-panel mb-16">
+        <div class="result-row"><span class="r-label">Custo por embalagem</span><span class="r-val" id="ing-custo-emb" style="display:none">—</span></div>
+        <div class="result-row" id="ing-row-items" style="display:none"><span class="r-label">Total de itens</span><span class="r-val" id="ing-total-items">—</span></div>
         <div class="result-row"><span class="r-label">Custo por unidade</span><span class="r-val green" id="ing-custo-calc">—</span></div>
       </div>
       <div class="form-row">
@@ -1761,12 +1786,46 @@ function renderIngredientes() {
   }).join('');
 }
 
-function calcIngCusto() {
-  const qtd = parseFloat(document.getElementById('ing-qtd').value)||0;
-  const val = parseFloat(document.getElementById('ing-valor').value)||0;
+const EMB_UNITS = ['cx','pct','fardo','saco'];
+
+function onIngUnitChange() {
   const und = document.getElementById('ing-und').value;
-  const el = document.getElementById('ing-custo-calc');
-  el.textContent = qtd>0&&val>0 ? `${fmt(val/qtd)} / ${und}` : '—';
+  const isEmb = EMB_UNITS.includes(und);
+  const panel = document.getElementById('ing-embalagem-fields');
+  panel.style.display = isEmb ? 'block' : 'none';
+  document.getElementById('ing-emb-label').textContent = und;
+  document.getElementById('ing-custo-emb').style.display = isEmb ? '' : 'none';
+  document.getElementById('ing-row-items').style.display = isEmb ? '' : 'none';
+  calcIngCusto();
+}
+
+function calcIngCusto() {
+  const qtd   = parseFloat(document.getElementById('ing-qtd').value)   || 0;
+  const val   = parseFloat(document.getElementById('ing-valor').value) || 0;
+  const und   = document.getElementById('ing-und').value;
+  const elCusto = document.getElementById('ing-custo-calc');
+  const elEmb   = document.getElementById('ing-custo-emb');
+  const elItems = document.getElementById('ing-total-items');
+
+  if (!qtd || !val) { elCusto.textContent = '—'; elEmb.textContent = '—'; elItems.textContent = '—'; return; }
+
+  if (EMB_UNITS.includes(und)) {
+    const embQty  = parseInt(document.getElementById('ing-emb-qty').value) || 0;
+    const embUnit = document.getElementById('ing-emb-unit').value;
+    const custoPorEmb = val / qtd;
+    elEmb.textContent = `${fmt(custoPorEmb)} / ${und}`;
+    if (embQty > 0) {
+      const totalItems = qtd * embQty;
+      const custoUnit  = val / totalItems;
+      elItems.textContent = `${totalItems} ${embUnit}`;
+      elCusto.textContent = `${fmt(custoUnit)} / ${embUnit}`;
+    } else {
+      elItems.textContent = '—';
+      elCusto.textContent = `${fmt(custoPorEmb)} / ${und}`;
+    }
+  } else {
+    elCusto.textContent = `${fmt(val / qtd)} / ${und}`;
+  }
 }
 
 function previewIngImg(input) {
@@ -1784,16 +1843,27 @@ async function saveIngrediente() {
   const nome = document.getElementById('ing-nome').value.trim();
   if (!nome) { toast('Nome obrigatório', 'err'); return; }
   const editId = document.getElementById('ing-edit-id').value;
+  const und      = document.getElementById('ing-und').value;
+  const qtd      = parseFloat(document.getElementById('ing-qtd').value)   || 0;
+  const valor    = parseFloat(document.getElementById('ing-valor').value) || 0;
+  const isEmb    = EMB_UNITS.includes(und);
+  const embQty   = isEmb ? (parseInt(document.getElementById('ing-emb-qty').value)  || 0) : 0;
+  const embUnit  = isEmb ? document.getElementById('ing-emb-unit').value : und;
+
+  // Se embalagem com itens definidos: salva unidade individual e custo unitário real
+  const finalUnit = (isEmb && embQty > 0) ? embUnit : und;
+  const totalQty  = (isEmb && embQty > 0) ? qtd * embQty : qtd;
+
   const payload = {
     name: nome, category: document.getElementById('ing-cat').value,
-    unit: document.getElementById('ing-und').value,
-    purchase_quantity: parseFloat(document.getElementById('ing-qtd').value)||0,
-    purchase_price: parseFloat(document.getElementById('ing-valor').value)||0,
+    unit: finalUnit,
+    purchase_quantity: totalQty,
+    purchase_price: valor,
     supplier: document.getElementById('ing-forn').value,
     stock_quantity: parseFloat(document.getElementById('ing-estoque').value)||0,
     notes: document.getElementById('ing-obs').value,
   };
-  payload.unit_cost = payload.purchase_quantity>0 ? payload.purchase_price/payload.purchase_quantity : 0;
+  payload.unit_cost = totalQty > 0 ? valor / totalQty : 0;
   if (S.editIngImg) payload.image_url = S.editIngImg;
 
   const method = editId ? 'PUT' : 'POST';
@@ -1815,10 +1885,16 @@ async function saveIngrediente() {
 }
 
 function clearIngForm() {
-  ['ing-nome','ing-qtd','ing-valor','ing-forn','ing-estoque','ing-obs'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
+  ['ing-nome','ing-qtd','ing-valor','ing-forn','ing-estoque','ing-obs','ing-emb-qty'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
   document.getElementById('ing-edit-id').value='';
   document.getElementById('ing-custo-calc').textContent='—';
+  document.getElementById('ing-custo-emb').textContent='—';
+  document.getElementById('ing-total-items').textContent='—';
   document.getElementById('ing-modal-title').textContent='Novo Ingrediente';
+  document.getElementById('ing-und').value='kg';
+  document.getElementById('ing-embalagem-fields').style.display='none';
+  document.getElementById('ing-custo-emb').style.display='none';
+  document.getElementById('ing-row-items').style.display='none';
   document.getElementById('ing-thumb').innerHTML=`<input type="file" id="ing-img-input" accept="image/*" style="display:none" onchange="previewIngImg(this)"><span id="ing-thumb-icon" style="font-size:22px">📷</span>`;
   S.editIngImg=null;
 }
