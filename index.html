@@ -394,12 +394,12 @@ input[type=checkbox]{accent-color:var(--green);width:15px;height:15px;cursor:poi
         </div>
       </div>
       <div style="text-align:right;margin-bottom:20px">
-        <a style="font-size:12px;color:var(--green);cursor:pointer" onclick="showView('view-forgot')">Esqueci minha senha</a>
+        <a id="link-forgot" style="font-size:12px;color:var(--green);cursor:pointer">Esqueci minha senha</a>
       </div>
-      <button class="btn btn-primary" id="btn-login" onclick="doLogin()">
-        <span id="login-label">Entrar</span>
+      <button class="btn btn-primary" id="btn-login">
+        <span>Entrar</span>
       </button>
-      <div class="auth-switch">Não tem conta? <a onclick="showView('view-register')">Criar agora — 14 dias grátis</a></div>
+      <div class="auth-switch">Não tem conta? <a id="link-to-register" style="cursor:pointer">Criar agora — 14 dias grátis</a></div>
     </div>
 
     <!-- REGISTER -->
@@ -430,10 +430,10 @@ input[type=checkbox]{accent-color:var(--green);width:15px;height:15px;cursor:poi
         </div>
         <div class="form-hint">Mínimo 8 caracteres</div>
       </div>
-      <button class="btn btn-primary" id="btn-register" onclick="doRegister()">
+      <button class="btn btn-primary" id="btn-register">
         <span>Criar conta gratuita</span>
       </button>
-      <div class="auth-switch">Já tem conta? <a onclick="showView('view-login')">Entrar</a></div>
+      <div class="auth-switch">Já tem conta? <a id="link-to-login" style="cursor:pointer">Entrar</a></div>
     </div>
 
     <!-- FORGOT -->
@@ -444,8 +444,8 @@ input[type=checkbox]{accent-color:var(--green);width:15px;height:15px;cursor:poi
         <label class="form-label">E-mail cadastrado</label>
         <input class="form-input" id="forgot-email" type="email" placeholder="seu@email.com">
       </div>
-      <button class="btn btn-primary" onclick="doForgot()">Enviar link de recuperação</button>
-      <div class="auth-switch"><a onclick="showView('view-login')">← Voltar ao login</a></div>
+      <button class="btn btn-primary" id="btn-forgot">Enviar link de recuperação</button>
+      <div class="auth-switch"><a id="link-back-login">← Voltar ao login</a></div>
     </div>
   </div>
 </div>
@@ -2388,6 +2388,22 @@ function toast(msg, type='ok') {
 // ============================================================
 // BOOT
 // ============================================================
+// ── Event listeners (evita problemas de CSP com onclick inline) ──
+document.addEventListener('DOMContentLoaded', function() {
+  const q = id => document.getElementById(id);
+  if (q('btn-login'))      q('btn-login').addEventListener('click', doLogin);
+  if (q('btn-register'))   q('btn-register').addEventListener('click', doRegister);
+  if (q('btn-forgot'))     q('btn-forgot').addEventListener('click', doForgot);
+  if (q('link-to-register')) q('link-to-register').addEventListener('click', () => showView('view-register'));
+  if (q('link-to-login'))    q('link-to-login').addEventListener('click', () => showView('view-login'));
+  if (q('link-back-login'))  q('link-back-login').addEventListener('click', () => showView('view-login'));
+  if (q('link-forgot'))      q('link-forgot').addEventListener('click', () => showView('view-forgot'));
+  // Enter nos campos de login
+  q('login-pass') && q('login-pass').addEventListener('keydown', e => { if(e.key==='Enter') doLogin(); });
+  q('login-email') && q('login-email').addEventListener('keydown', e => { if(e.key==='Enter') doLogin(); });
+  q('reg-pass') && q('reg-pass').addEventListener('keydown', e => { if(e.key==='Enter') doRegister(); });
+});
+
 (async function boot() {
   loadLocal();
   if (S.accessToken && S.user) {
