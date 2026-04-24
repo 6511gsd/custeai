@@ -430,8 +430,8 @@ input[type=checkbox]{accent-color:var(--green);width:15px;height:15px;cursor:poi
         </div>
         <div class="form-hint">Mínimo 8 caracteres</div>
       </div>
-      <button class="btn btn-primary" onclick="doRegister()">
-        <span id="reg-label">Criar conta gratuita</span>
+      <button class="btn btn-primary" id="btn-register" onclick="doRegister()">
+        <span>Criar conta gratuita</span>
       </button>
       <div class="auth-switch">Já tem conta? <a onclick="showView('view-login')">Entrar</a></div>
     </div>
@@ -1192,7 +1192,13 @@ async function apiFetch(path, opts = {}) {
   // Não envia Content-Type para FormData
   if (opts.body instanceof FormData) delete headers['Content-Type'];
 
-  let res = await fetch(API + path, { ...opts, headers });
+  let res;
+  try {
+    res = await fetch(API + path, { ...opts, headers });
+  } catch(e) {
+    toast('Sem conexão com o servidor. Verifique sua internet.', 'err');
+    return null;
+  }
 
   // Token expirado → tenta refresh
   if (res.status === 401 && S.refreshToken) {
@@ -1314,15 +1320,20 @@ async function doLogin() {
   const btn = document.getElementById('btn-login');
   btn.disabled = true;
   btn.innerHTML = '<div class="spinner"></div>';
-  const data = await apiJSON('/api/auth/login', { method:'POST', body: JSON.stringify({ email, password: pass }) });
-  btn.disabled = false;
-  btn.innerHTML = '<span id="login-label">Entrar</span>';
-  if (!data) return;
-  S.user = data.user; S.accessToken = data.accessToken; S.refreshToken = data.refreshToken;
-  S.company = { id: data.user.company_id, name: data.user.company_name };
-  saveLocal();
-  await loadAppData();
-  showScreen('screen-app');
+  try {
+    const data = await apiJSON('/api/auth/login', { method:'POST', body: JSON.stringify({ email, password: pass }) });
+    if (!data) return;
+    S.user = data.user; S.accessToken = data.accessToken; S.refreshToken = data.refreshToken;
+    S.company = { id: data.user.company_id, name: data.user.company_name };
+    saveLocal();
+    await loadAppData();
+    showScreen('screen-app');
+  } catch(e) {
+    toast('Erro de conexão. Tente novamente.', 'err');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<span id="login-label">Entrar</span>';
+  }
 }
 
 async function doRegister() {
@@ -1333,14 +1344,24 @@ async function doRegister() {
   const password = document.getElementById('reg-pass').value;
   if (!full_name || !company_name || !email || !password) { toast('Preencha todos os campos obrigatórios', 'err'); return; }
   if (password.length < 8) { toast('Senha deve ter ao menos 8 caracteres', 'err'); return; }
-  const data = await apiJSON('/api/auth/register', { method:'POST', body: JSON.stringify({ full_name, company_name, email, phone, password }) });
-  if (!data) return;
-  toast('Conta criada! Trial de 14 dias ativado 🎉', 'ok');
-  S.user = data.user; S.accessToken = data.accessToken; S.refreshToken = data.refreshToken;
-  S.company = data.company;
-  saveLocal();
-  await loadAppData();
-  showScreen('screen-app');
+  const btn = document.getElementById('btn-register');
+  btn.disabled = true;
+  btn.innerHTML = '<div class="spinner"></div>';
+  try {
+    const data = await apiJSON('/api/auth/register', { method:'POST', body: JSON.stringify({ full_name, company_name, email, phone, password }) });
+    if (!data) return;
+    toast('Conta criada com sucesso!', 'ok');
+    S.user = data.user; S.accessToken = data.accessToken; S.refreshToken = data.refreshToken;
+    S.company = data.company;
+    saveLocal();
+    await loadAppData();
+    showScreen('screen-app');
+  } catch(e) {
+    toast('Erro de conexão. Tente novamente.', 'err');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<span>Criar conta gratuita</span>';
+  }
 }
 
 async function doForgot() {
