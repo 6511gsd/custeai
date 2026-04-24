@@ -1289,31 +1289,44 @@ input[type=checkbox]{accent-color:var(--green);width:15px;height:15px;cursor:poi
 
 <!-- ══════════ SCRIPTS ══════════════════════════════════════ -->
 <script>
-// ── Patch global: converte onclick em addEventListener (CSP-safe) ──
+// ── Patch global: converte inline event handlers em addEventListener (CSP-safe) ──
 (function() {
-  function patchOnclicks(root) {
-    if (!root || !root.querySelectorAll) return;
-    root.querySelectorAll('[onclick]').forEach(function(el) {
-      if (el._onclickPatched) return;
-      el._onclickPatched = true;
-      var code = el.getAttribute('onclick');
-      el.addEventListener('click', function(e) {
-        try { (new Function('event', code)).call(el, e); } catch(err) { console.error('[onclick]', err); }
+  var EVENTS = {
+    onclick: 'click', onchange: 'change', oninput: 'input',
+    onsubmit: 'submit', onfocus: 'focus', onblur: 'blur',
+    onkeydown: 'keydown', onkeyup: 'keyup', onmousedown: 'mousedown',
+  };
+
+  function patchElement(el) {
+    if (!el || el.nodeType !== 1) return;
+    Object.keys(EVENTS).forEach(function(attr) {
+      var code = el.getAttribute(attr);
+      if (!code) return;
+      var key = '_patched_' + attr;
+      if (el[key]) return;
+      el[key] = true;
+      var evtName = EVENTS[attr];
+      el.addEventListener(evtName, function(e) {
+        try { (new Function('event', code)).call(el, e); } catch(err) { console.error('[' + attr + ']', err); }
       });
     });
+    // Patch filhos recursivamente
+    Array.from(el.children || []).forEach(patchElement);
   }
-  // Patch elementos existentes
-  document.addEventListener('DOMContentLoaded', function() { patchOnclicks(document); });
-  // Patch elementos gerados dinamicamente via innerHTML
-  var mo = new MutationObserver(function(mutations) {
-    mutations.forEach(function(m) {
-      m.addedNodes.forEach(function(n) {
-        if (n.nodeType === 1) { patchOnclicks(n); }
-      });
-    });
-  });
+
+  function patchAll(root) {
+    if (!root || !root.querySelectorAll) return;
+    var sel = Object.keys(EVENTS).map(function(a){ return '[' + a + ']'; }).join(',');
+    root.querySelectorAll(sel).forEach(patchElement);
+  }
+
   document.addEventListener('DOMContentLoaded', function() {
-    mo.observe(document.body, { childList: true, subtree: true });
+    patchAll(document);
+    new MutationObserver(function(mutations) {
+      mutations.forEach(function(m) {
+        m.addedNodes.forEach(function(n) { if (n.nodeType === 1) patchAll(n); });
+      });
+    }).observe(document.body, { childList: true, subtree: true });
   });
 })();
 
