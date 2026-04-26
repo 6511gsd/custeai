@@ -1300,7 +1300,7 @@ input[type=checkbox]{accent-color:var(--green);width:15px;height:15px;cursor:poi
             <div class="form-label">Cor</div>
             <input type="color" id="cat-new-color" value="#6b7280" style="width:52px;height:38px;border:1px solid var(--border2);border-radius:var(--r);cursor:pointer;background:var(--s2)">
           </div>
-          <button class="btn btn-primary btn-sm" style="width:auto;white-space:nowrap" onclick="addCategory()">+ Adicionar</button>
+          <button class="btn btn-primary btn-sm" id="btn-cat-add" style="width:auto;white-space:nowrap" onclick="addCategory()">+ Adicionar</button>
         </div>
       </div>
     </div>
@@ -1667,7 +1667,8 @@ async function loadAppData() {
   if (comp) S.company = comp;
   if (promos) S.promotions = promos;
   if (catIng) S.catIng = catIng;
-  if (catCF) S.catCF = catCF;
+  if (catCF)  S.catCF  = catCF;
+  _refreshCatSelects();
   saveLocal();
   renderSidebar();
   renderDashboard();
@@ -1804,82 +1805,107 @@ function catEmoji(cat) {
 }
 
 // ── Popula selects de categoria ──
+// ════════════════════════════════════════════════
+// CATEGORIAS DINÂMICAS
+// ════════════════════════════════════════════════
+let _catType = 'ingredient';
+
 function populateCatSelect(selectId, cats, currentVal) {
   const el = document.getElementById(selectId);
-  if (!el) return;
-  el.innerHTML = cats.map(c =>
-    `<option value="${c.name}" ${c.name === currentVal ? 'selected' : ''}>${c.emoji || ''} ${c.name}</option>`
-  ).join('');
+  if (!el || !cats) return;
+  const prev = currentVal || el.value;
+  el.innerHTML = cats.length
+    ? cats.map(c => `<option value="${c.name}">${c.emoji || ''} ${c.name}</option>`).join('')
+    : '<option value="">— sem categorias —</option>';
+  if (prev) el.value = prev;
 }
 
-// ── Modal de categorias ──
-let _catModalType = 'ingredient';
-
 function openCatModal(type) {
-  _catModalType = type;
-  const title = type === 'ingredient' ? '🏷️ Categorias de Ingredientes' : '🏷️ Categorias de Custos Fixos';
-  document.getElementById('cat-modal-title').textContent = title;
-  document.getElementById('cat-new-name').value = '';
+  _catType = type;
+  document.getElementById('cat-modal-title').textContent =
+    type === 'ingredient' ? '🏷️ Categorias de Ingredientes' : '🏷️ Categorias de Custos Fixos';
+  document.getElementById('cat-new-name').value  = '';
   document.getElementById('cat-new-emoji').value = '';
-  document.getElementById('cat-new-color').value = '#6b7280';
+  document.getElementById('cat-new-color').value = '#6366f1';
   renderCatList();
-  openModal('modal-cat');
+  document.getElementById('modal-cat').classList.add('open');
 }
 
 function renderCatList() {
-  const cats = _catModalType === 'ingredient' ? S.catIng : S.catCF;
+  const cats = _catType === 'ingredient' ? S.catIng : S.catCF;
   const el = document.getElementById('cat-list');
-  if (!cats.length) { el.innerHTML = '<div class="muted small" style="padding:8px 0">Nenhuma categoria ainda.</div>'; return; }
+  if (!cats || !cats.length) {
+    el.innerHTML = '<p class="muted small" style="padding:8px 0">Nenhuma categoria. Adicione abaixo.</p>';
+    return;
+  }
   el.innerHTML = cats.map(c => `
-    <div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border)" id="cat-row-${c.id}">
-      <span style="font-size:20px;width:28px;text-align:center">${c.emoji || '📦'}</span>
-      <input class="form-input" style="flex:1;padding:6px 10px;font-size:13px" id="cat-name-${c.id}" value="${c.name}">
-      <input type="color" value="${c.color || '#6b7280'}" id="cat-color-${c.id}" style="width:34px;height:34px;border:1px solid var(--border2);border-radius:6px;cursor:pointer;background:var(--s2)">
-      <button class="btn btn-ghost btn-xs" onclick="saveCategory('${c.id}')">💾</button>
-      <button class="btn btn-danger btn-xs" onclick="deleteCategory('${c.id}')">🗑️</button>
+    <div style="display:flex;align-items:center;gap:8px;padding:9px 0;border-bottom:1px solid var(--border)">
+      <input style="width:46px;text-align:center;font-size:18px;padding:5px 4px;background:var(--s2);border:1px solid var(--border2);border-radius:var(--r);color:var(--text)"
+             id="ce-emoji-${c.id}" value="${c.emoji||'📦'}" maxlength="2">
+      <input class="form-input" style="flex:1;padding:7px 10px;font-size:13px"
+             id="ce-name-${c.id}" value="${c.name}">
+      <input type="color" value="${c.color||'#6b7280'}"
+             id="ce-color-${c.id}" title="Cor"
+             style="width:38px;height:36px;border:1px solid var(--border2);border-radius:var(--r);cursor:pointer;padding:2px;background:var(--s2)">
+      <button class="btn btn-ghost btn-xs" style="flex-shrink:0" onclick="saveCategory('${c.id}')">💾</button>
+      <button class="btn btn-danger btn-xs" style="flex-shrink:0" onclick="deleteCategory('${c.id}')">🗑️</button>
     </div>`).join('');
 }
 
 async function addCategory() {
   const name  = document.getElementById('cat-new-name').value.trim();
   const emoji = document.getElementById('cat-new-emoji').value.trim() || '📦';
-  const color = document.getElementById('cat-new-color').value;
+  const color = document.getElementById('cat-new-color').value || '#6b7280';
   if (!name) { toast('Digite o nome da categoria', 'err'); return; }
-  const result = await apiJSON('/api/categories', { method: 'POST', body: JSON.stringify({ type: _catModalType, name, emoji, color }) });
+  const btn = document.getElementById('btn-cat-add');
+  btn.disabled = true;
+  const result = await apiJSON('/api/categories', {
+    method: 'POST',
+    body: JSON.stringify({ type: _catType, name, emoji, color })
+  });
+  btn.disabled = false;
   if (!result) return;
-  if (_catModalType === 'ingredient') S.catIng.push(result); else S.catCF.push(result);
-  document.getElementById('cat-new-name').value = '';
+  (_catType === 'ingredient' ? S.catIng : S.catCF).push(result);
+  document.getElementById('cat-new-name').value  = '';
   document.getElementById('cat-new-emoji').value = '';
+  _refreshCatSelects();
   renderCatList();
-  populateCatSelect('ing-cat', S.catIng);
-  populateCatSelect('cf-cat', S.catCF);
   toast('Categoria adicionada!');
 }
 
 async function saveCategory(id) {
-  const cats = _catModalType === 'ingredient' ? S.catIng : S.catCF;
-  const name  = document.getElementById('cat-name-' + id)?.value.trim();
-  const color = document.getElementById('cat-color-' + id)?.value;
+  const cats  = _catType === 'ingredient' ? S.catIng : S.catCF;
   const cat   = cats.find(c => c.id === id);
-  if (!name || !cat) return;
-  const result = await apiJSON(`/api/categories/${id}`, { method: 'PUT', body: JSON.stringify({ name, emoji: cat.emoji, color }) });
+  if (!cat) return;
+  const name  = document.getElementById('ce-name-' + id)?.value.trim();
+  const emoji = document.getElementById('ce-emoji-' + id)?.value.trim() || '📦';
+  const color = document.getElementById('ce-color-' + id)?.value || '#6b7280';
+  if (!name) { toast('Nome não pode ser vazio', 'err'); return; }
+  const result = await apiJSON(`/api/categories/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify({ name, emoji, color })
+  });
   if (!result) return;
   Object.assign(cat, result);
+  _refreshCatSelects();
   renderCatList();
-  populateCatSelect('ing-cat', S.catIng);
-  populateCatSelect('cf-cat', S.catCF);
   toast('Categoria salva!');
 }
 
 async function deleteCategory(id) {
   if (!confirm('Remover esta categoria?')) return;
-  await apiJSON(`/api/categories/${id}`, { method: 'DELETE' });
-  if (_catModalType === 'ingredient') S.catIng = S.catIng.filter(c => c.id !== id);
+  const ok = await apiJSON(`/api/categories/${id}`, { method: 'DELETE' });
+  if (ok === null) return;
+  if (_catType === 'ingredient') S.catIng = S.catIng.filter(c => c.id !== id);
   else S.catCF = S.catCF.filter(c => c.id !== id);
+  _refreshCatSelects();
   renderCatList();
-  populateCatSelect('ing-cat', S.catIng);
-  populateCatSelect('cf-cat', S.catCF);
   toast('Categoria removida', 'info');
+}
+
+function _refreshCatSelects() {
+  populateCatSelect('ing-cat', S.catIng);
+  populateCatSelect('cf-cat',  S.catCF);
 }
 
 function renderIngredientes() {
@@ -2043,8 +2069,7 @@ function editIng(id) {
   }
   calcIngCusto();
   openModal('modal-ing');
-  // restaura categoria após popular o select
-  setTimeout(() => { document.getElementById('ing-cat').value = i.category || ''; }, 0);
+  populateCatSelect('ing-cat', S.catIng, i.category);
 }
 
 async function deleteIng(id) {
@@ -2311,7 +2336,18 @@ async function saveCF() {
 }
 
 function clearCFForm(){['cf-nome','cf-valor','cf-dia','cf-obs'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});document.getElementById('cf-edit-id').value='';document.getElementById('cf-modal-title').textContent='Novo Custo Fixo';}
-function editCF(id){const cf=S.fixedCosts.find(f=>f.id===id);if(!cf)return;document.getElementById('cf-modal-title').textContent='Editar Custo Fixo';document.getElementById('cf-edit-id').value=id;document.getElementById('cf-nome').value=cf.name||'';document.getElementById('cf-cat').value=cf.category||'outros';document.getElementById('cf-valor').value=cf.amount||'';document.getElementById('cf-dia').value=cf.due_day||'';document.getElementById('cf-recorrente').value=cf.is_recurring!==false?'true':'false';document.getElementById('cf-obs').value=cf.notes||'';openModal('modal-cf');}
+function editCF(id){
+  const cf=S.fixedCosts.find(f=>f.id===id);if(!cf)return;
+  document.getElementById('cf-modal-title').textContent='Editar Custo Fixo';
+  document.getElementById('cf-edit-id').value=id;
+  document.getElementById('cf-nome').value=cf.name||'';
+  document.getElementById('cf-valor').value=cf.amount||'';
+  document.getElementById('cf-dia').value=cf.due_day||'';
+  document.getElementById('cf-recorrente').value=cf.is_recurring!==false?'true':'false';
+  document.getElementById('cf-obs').value=cf.notes||'';
+  openModal('modal-cf');
+  populateCatSelect('cf-cat', S.catCF, cf.category);
+}
 async function deleteCF(id){if(!confirm('Remover?'))return;await apiJSON(`/api/fixed-costs/${id}`,{method:'DELETE'});S.fixedCosts=S.fixedCosts.filter(f=>f.id!==id);saveLocal();renderCostosFixos();renderDashboard();toast('Removido','info');}
 
 // ============================================================
