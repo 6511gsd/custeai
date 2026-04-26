@@ -3,29 +3,29 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>CusteAi — Gestão Financeira para Restaurantes</title>
-<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,300;12..96,400;12..96,500;12..96,700;12..96,800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<title>CusteAI — Gestão Financeira para Restaurantes</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Syne:wght@600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 :root {
-  --bg: #07080a;
-  --s1: #0e1014;
-  --s2: #14171d;
-  --s3: #1b1f28;
-  --border: #21262f;
-  --border2: #2a3040;
-  --green: #00d97e;
-  --green-dim: rgba(0,217,126,0.08);
-  --green-mid: rgba(0,217,126,0.18);
-  --amber: #f59e0b;
-  --amber-dim: rgba(245,158,11,0.08);
-  --red: #f43f5e;
-  --red-dim: rgba(244,63,94,0.08);
+  --bg: #0A1628;
+  --s1: #0f1c30;
+  --s2: #162036;
+  --s3: #1d2a42;
+  --border: #1e2d45;
+  --border2: #28395a;
+  --green: #00B37E;
+  --green-dim: rgba(0,179,126,0.08);
+  --green-mid: rgba(0,179,126,0.18);
+  --amber: #FFD166;
+  --amber-dim: rgba(255,209,102,0.08);
+  --red: #FF6B6B;
+  --red-dim: rgba(255,107,107,0.08);
   --blue: #6366f1;
   --blue-dim: rgba(99,102,241,0.08);
   --text: #e8eaf0;
   --text2: #9ba3b5;
   --text3: #5a6278;
-  --font: 'Bricolage Grotesque', sans-serif;
+  --font: 'DM Sans', sans-serif;
   --mono: 'JetBrains Mono', monospace;
   --r: 10px;
   --r2: 16px;
@@ -45,22 +45,22 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:14
 #screen-auth{flex-direction:row}
 
 .auth-left{
-  flex:1;background:linear-gradient(160deg,#0b1a2e 0%,#07080a 60%);
+  flex:1;background:linear-gradient(160deg,#071428 0%,#0A1628 60%);
   display:flex;flex-direction:column;justify-content:center;padding:60px;
   position:relative;overflow:hidden;
 }
 .auth-left::before{
   content:'';position:absolute;inset:0;
-  background:radial-gradient(ellipse 60% 60% at 30% 50%,rgba(0,217,126,0.06) 0%,transparent 70%);
+  background:radial-gradient(ellipse 60% 60% at 30% 50%,rgba(0,179,126,0.06) 0%,transparent 70%);
 }
-.auth-logo{font-size:28px;font-weight:800;letter-spacing:-1px;margin-bottom:48px;position:relative}
+.auth-logo{font-family:'Syne',sans-serif;font-size:28px;font-weight:800;letter-spacing:-1px;margin-bottom:48px;position:relative}
 .auth-logo span{color:var(--green)}
-.auth-tagline{font-size:40px;font-weight:800;letter-spacing:-1.5px;line-height:1.1;position:relative;margin-bottom:24px}
+.auth-tagline{font-family:'Syne',sans-serif;font-size:40px;font-weight:800;letter-spacing:-1.5px;line-height:1.1;position:relative;margin-bottom:24px}
 .auth-tagline em{font-style:normal;color:var(--green)}
 .auth-desc{font-size:15px;color:var(--text2);line-height:1.7;max-width:380px;position:relative;margin-bottom:48px}
 .auth-features{display:flex;flex-direction:column;gap:12px;position:relative}
 .auth-feat{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--text2)}
-.auth-feat::before{content:'✓';width:20px;height:20px;background:var(--green-dim);border:1px solid rgba(0,217,126,0.3);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--green);flex-shrink:0}
+.auth-feat::before{content:'✓';width:20px;height:20px;background:var(--green-dim);border:1px solid rgba(0,179,126,0.3);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--green);flex-shrink:0}
 .grid-bg{
   position:absolute;inset:0;
   background-image:linear-gradient(var(--border) 1px,transparent 1px),linear-gradient(90deg,var(--border) 1px,transparent 1px);
@@ -97,7 +97,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:14
 /* BUTTONS */
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:10px 20px;border-radius:var(--r);border:none;cursor:pointer;font-family:var(--font);font-size:14px;font-weight:600;transition:all 0.15s;line-height:1}
 .btn-primary{background:var(--green);color:#000;width:100%}
-.btn-primary:hover{background:#00f090;transform:translateY(-1px);box-shadow:0 4px 20px rgba(0,217,126,0.25)}
+.btn-primary:hover{background:#007A55;transform:translateY(-1px);box-shadow:0 4px 20px rgba(0,179,126,0.25)}
 .btn-primary:active{transform:translateY(0)}
 .btn-ghost{background:var(--s3);color:var(--text);border:1px solid var(--border2)}
 .btn-ghost:hover{border-color:var(--green);color:var(--green)}
@@ -138,7 +138,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:14
   display:flex;flex-direction:column;flex-shrink:0;z-index:50;
 }
 .sb-logo{padding:20px 20px 16px;border-bottom:1px solid var(--border)}
-.sb-logo-text{font-size:20px;font-weight:800;letter-spacing:-0.5px}
+.sb-logo-text{font-family:'Syne',sans-serif;font-size:20px;font-weight:800;letter-spacing:-0.5px}
 .sb-logo-text span{color:var(--green)}
 .sb-company{font-size:11px;color:var(--text3);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
@@ -150,7 +150,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:14
   border:1px solid transparent;
 }
 .sb-item:hover{background:var(--s2);color:var(--text)}
-.sb-item.active{background:var(--green-dim);color:var(--green);border-color:rgba(0,217,126,0.15)}
+.sb-item.active{background:var(--green-dim);color:var(--green);border-color:rgba(0,179,126,0.15)}
 .sb-icon{font-size:15px;width:18px;text-align:center;flex-shrink:0}
 .sb-badge{margin-left:auto;background:var(--red);color:#fff;border-radius:99px;padding:1px 6px;font-size:10px;font-weight:700}
 
@@ -160,7 +160,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:14
   cursor:pointer;transition:background 0.12s;
 }
 .sb-user:hover{background:var(--s2)}
-.sb-avatar{width:30px;height:30px;border-radius:50%;background:var(--green-mid);border:1px solid rgba(0,217,126,0.3);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:var(--green);flex-shrink:0}
+.sb-avatar{width:30px;height:30px;border-radius:50%;background:var(--green-mid);border:1px solid rgba(0,179,126,0.3);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:var(--green);flex-shrink:0}
 .sb-uname{font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:110px}
 .sb-uemail{font-size:10px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:110px}
 
@@ -169,7 +169,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:14
 
 /* TOPBAR */
 .topbar{
-  height:54px;background:rgba(7,8,10,0.8);backdrop-filter:blur(16px);
+  height:54px;background:rgba(10,22,40,0.8);backdrop-filter:blur(16px);
   border-bottom:1px solid var(--border);padding:0 24px;
   display:flex;align-items:center;justify-content:space-between;flex-shrink:0;
   position:sticky;top:0;z-index:40;
@@ -219,7 +219,7 @@ tr:hover td{background:rgba(255,255,255,0.015)}
 
 /* BADGES */
 .badge{display:inline-flex;align-items:center;padding:3px 9px;border-radius:99px;font-size:11px;font-weight:700;letter-spacing:0.2px}
-.badge-green{background:var(--green-dim);color:var(--green);border:1px solid rgba(0,217,126,0.2)}
+.badge-green{background:var(--green-dim);color:var(--green);border:1px solid rgba(0,179,126,0.2)}
 .badge-red{background:var(--red-dim);color:var(--red);border:1px solid rgba(244,63,94,0.2)}
 .badge-amber{background:var(--amber-dim);color:var(--amber);border:1px solid rgba(245,158,11,0.2)}
 .badge-blue{background:var(--blue-dim);color:var(--blue);border:1px solid rgba(99,102,241,0.2)}
@@ -254,7 +254,7 @@ tr:hover td{background:rgba(255,255,255,0.015)}
 /* INGREDIENT GRID */
 .ing-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:14px}
 .ing-card{background:var(--s1);border:1px solid var(--border);border-radius:var(--r2);overflow:hidden;transition:all 0.2s;cursor:default}
-.ing-card:hover{border-color:rgba(0,217,126,0.25);transform:translateY(-2px);box-shadow:0 8px 32px rgba(0,0,0,0.4)}
+.ing-card:hover{border-color:rgba(0,179,126,0.25);transform:translateY(-2px);box-shadow:0 8px 32px rgba(0,0,0,0.4)}
 .ing-img{width:100%;height:110px;background:var(--s3);display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden}
 .ing-img img{width:100%;height:100%;object-fit:cover}
 .ing-img .no-img{font-size:34px}
@@ -471,7 +471,7 @@ input[type=checkbox]{accent-color:var(--green);width:15px;height:15px;cursor:poi
 <div class="screen active" id="screen-auth">
   <div class="auth-left">
     <div class="grid-bg"></div>
-    <div class="auth-logo">Custe<span>Ai</span></div>
+    <div class="auth-logo">Custe<span>AI</span></div>
     <div class="auth-tagline">Gestão financeira<br><em>inteligente</em> para<br>restaurantes</div>
     <div class="auth-desc">Calcule o custo real de cada prato, precifique com margem garantida e tome decisões baseadas em dados concretos.</div>
     <div class="auth-features">
@@ -581,7 +581,7 @@ input[type=checkbox]{accent-color:var(--green);width:15px;height:15px;cursor:poi
 
 <!-- ══ PAYWALL ══════════════════════════════════════════════ -->
 <div class="screen" id="screen-paywall" style="display:none;flex-direction:column;align-items:center;justify-content:center;padding:40px">
-  <div style="font-size:28px;font-weight:800;margin-bottom:8px">Custe<span style="color:var(--green)">Ai</span></div>
+  <div style="font-family:'Syne',sans-serif;font-size:28px;font-weight:800;margin-bottom:8px">Custe<span style="color:var(--green)">AI</span></div>
   <div style="font-size:22px;font-weight:800;margin-bottom:8px;letter-spacing:-0.5px">Escolha seu plano</div>
   <div style="color:var(--text2);margin-bottom:36px;font-size:14px">Seu período de trial encerrou. Continue com acesso completo.</div>
   <div class="grid-3" style="max-width:900px;width:100%" id="plans-grid"></div>
@@ -595,7 +595,7 @@ input[type=checkbox]{accent-color:var(--green);width:15px;height:15px;cursor:poi
   <!-- SIDEBAR -->
   <aside class="sidebar" id="sidebar">
     <div class="sb-logo">
-      <div class="sb-logo-text">Custe<span>Ai</span></div>
+      <div class="sb-logo-text">Custe<span>AI</span></div>
       <div class="sb-company" id="sb-company-name">Carregando...</div>
     </div>
     <nav class="sb-nav">
@@ -2457,7 +2457,7 @@ function recalcDNA() {
     <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px">
       ${pieces.map(p=>`<div style="background:var(--s3);border:1px solid var(--border2);border-radius:8px;padding:8px 12px;text-align:center"><div class="fs11 muted">${p.label}</div><div class="mono fw7" style="font-size:16px;color:${p.color}">${fmtPct(p.val)}</div></div>`).join('<div style="display:flex;align-items:center;color:var(--text3);font-size:18px">+</div>')}
       <div style="display:flex;align-items:center;color:var(--green);font-size:22px;font-weight:700">=</div>
-      <div style="background:var(--green-dim);border:1px solid rgba(0,217,126,.3);border-radius:8px;padding:8px 14px;text-align:center"><div class="fs11 muted">TOTAL</div><div class="mono fw8" style="font-size:20px;color:var(--green)">${fmtPct(total)}</div></div>
+      <div style="background:var(--green-dim);border:1px solid rgba(0,179,126,.3);border-radius:8px;padding:8px 14px;text-align:center"><div class="fs11 muted">TOTAL</div><div class="mono fw8" style="font-size:20px;color:var(--green)">${fmtPct(total)}</div></div>
     </div>
     <div class="result-panel"><div class="result-row"><span class="r-label">Margem máxima possível</span><span class="r-val green">${fmtPct(Math.max(0,100-total))}</span></div></div>
   `;
