@@ -34,10 +34,17 @@ pool.on('error', (err) => {
   console.error('[DB] Erro inesperado no cliente idle:', err.message);
 });
 
-// Confirmar conexão na inicialização
+// Confirmar conexão e rodar migrações incrementais na inicialização
 pool.connect()
-  .then(client => {
+  .then(async client => {
     console.log('[DB] Conectado ao Supabase com sucesso');
+    try {
+      await client.query(`
+        ALTER TABLE product_ingredients ADD COLUMN IF NOT EXISTS loss_factor NUMERIC(5,2) DEFAULT 0;
+      `);
+    } catch (e) {
+      console.warn('[DB] Migração loss_factor:', e.message);
+    }
     client.release();
   })
   .catch(err => {

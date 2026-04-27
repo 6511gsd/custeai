@@ -8,6 +8,13 @@ const multer = require('multer');
 const path   = require('path');
 const fs     = require('fs');
 
+const ALLOWED_IMAGE_TYPES = ['image/jpeg','image/png','image/webp','image/gif'];
+const SAFE_EXT = {'image/jpeg':'.jpg','image/png':'.png','image/webp':'.webp','image/gif':'.gif'};
+const fileFilter = (req, file, cb) => {
+  if (ALLOWED_IMAGE_TYPES.includes(file.mimetype)) return cb(null, true);
+  cb(Object.assign(new Error('Apenas imagens são permitidas'), {code:'INVALID_FILE_TYPE'}), false);
+};
+
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     const dir = path.join(__dirname, '../uploads/products');
@@ -15,11 +22,11 @@ const storage = multer.diskStorage({
     cb(null, dir);
   },
   filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname);
+    const ext = SAFE_EXT[file.mimetype] || '.jpg';
     cb(null, `${Date.now()}-${Math.random().toString(36).slice(2)}${ext}`);
   },
 });
-const upload = multer({ storage, limits: { fileSize: 5 * 1024 * 1024 } });
+const upload = multer({ storage, limits: { fileSize: 5 * 1024 * 1024 }, fileFilter });
 
 // GET /api/products
 router.get('/', requireSubscription, async (req, res) => {
@@ -64,16 +71,17 @@ router.post('/', requireSubscription, upload.single('image'), async (req, res) =
     if (!name) return res.status(400).json({ error: 'Nome é obrigatório' });
 
     const imageUrl = req.file ? `/uploads/products/${req.file.filename}` : null;
-    const items    = ingredients ? JSON.parse(ingredients) : [];
+    const items    = typeof ingredients === 'string' ? JSON.parse(ingredients) : (ingredients || []);
 
     const result = await withTransaction(async (client) => {
-      // Calcular CMV total
       let cmvTotal = 0;
       for (const item of items) {
-        const { rows } = await client.query('SELECT unit_cost FROM ingredients WHERE id=$1', [item.ingredient_id]);
+        const { rows } = await client.query('SELECT unit_cost, unit FROM ingredients WHERE id=$1', [item.ingredient_id]);
         if (rows.length) {
           item.unit_cost_snapshot = rows[0].unit_cost;
-          cmvTotal += parseFloat(rows[0].unit_cost) * parseFloat(item.quantity);
+          item.unit = item.unit || rows[0].unit;
+          const lossMultiplier = 1 + (parseFloat(item.loss_factor) || 0) / 100;
+          cmvTotal += parseFloat(rows[0].unit_cost) * parseFloat(item.quantity) * lossMultiplier;
         }
       }
 
@@ -81,15 +89,15 @@ router.post('/', requireSubscription, upload.single('image'), async (req, res) =
         INSERT INTO products (company_id, name, category, sale_price, yield_quantity, cmv_total, image_url, notes)
         VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
         RETURNING *
-      `, [req.companyId, name, category, sale_price, yield_quantity || 1, cmvTotal, imageUrl, notes]);
+      `, [req.companyId, name, category, sale_price || 0, yield_quantity || 1, cmvTotal, imageUrl, notes]);
 
       const product = products[0];
 
       for (const item of items) {
         await client.query(`
-          INSERT INTO product_ingredients (product_id, ingredient_id, quantity, unit, unit_cost_snapshot)
-          VALUES ($1,$2,$3,$4,$5)
-        `, [product.id, item.ingredient_id, item.quantity, item.unit, item.unit_cost_snapshot]);
+          INSERT INTO product_ingredients (product_id, ingredient_id, quantity, unit, unit_cost_snapshot, loss_factor)
+          VALUES ($1,$2,$3,$4,$5,$6)
+        `, [product.id, item.ingredient_id, item.quantity, item.unit, item.unit_cost_snapshot, item.loss_factor || 0]);
       }
 
       return product;
@@ -104,7 +112,8 @@ router.put('/:id', requireSubscription, upload.single('image'), async (req, res)
   try {
     const { name, category, sale_price, yield_quantity, notes, ingredients } = req.body;
     const imageUrl = req.file ? `/uploads/products/${req.file.filename}` : undefined;
-    const items    = ingredients ? JSON.parse(ingredients) : null;
+    const rawItems = typeof ingredients === 'string' ? JSON.parse(ingredients) : (ingredients || null);
+    const items    = rawItems !== null && rawItems !== undefined ? rawItems : null;
 
     const result = await withTransaction(async (client) => {
       let cmvTotal = null;
@@ -112,10 +121,12 @@ router.put('/:id', requireSubscription, upload.single('image'), async (req, res)
       if (items !== null) {
         cmvTotal = 0;
         for (const item of items) {
-          const { rows } = await client.query('SELECT unit_cost FROM ingredients WHERE id=$1', [item.ingredient_id]);
+          const { rows } = await client.query('SELECT unit_cost, unit FROM ingredients WHERE id=$1', [item.ingredient_id]);
           if (rows.length) {
             item.unit_cost_snapshot = rows[0].unit_cost;
-            cmvTotal += parseFloat(rows[0].unit_cost) * parseFloat(item.quantity);
+            item.unit = item.unit || rows[0].unit;
+            const lossMultiplier = 1 + (parseFloat(item.loss_factor) || 0) / 100;
+            cmvTotal += parseFloat(rows[0].unit_cost) * parseFloat(item.quantity) * lossMultiplier;
           }
         }
       }
@@ -137,9 +148,9 @@ router.put('/:id', requireSubscription, upload.single('image'), async (req, res)
         await client.query('DELETE FROM product_ingredients WHERE product_id=$1', [req.params.id]);
         for (const item of items) {
           await client.query(`
-            INSERT INTO product_ingredients (product_id, ingredient_id, quantity, unit, unit_cost_snapshot)
-            VALUES ($1,$2,$3,$4,$5)
-          `, [req.params.id, item.ingredient_id, item.quantity, item.unit, item.unit_cost_snapshot]);
+            INSERT INTO product_ingredients (product_id, ingredient_id, quantity, unit, unit_cost_snapshot, loss_factor)
+            VALUES ($1,$2,$3,$4,$5,$6)
+          `, [req.params.id, item.ingredient_id, item.quantity, item.unit, item.unit_cost_snapshot, item.loss_factor || 0]);
         }
       }
 

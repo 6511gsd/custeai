@@ -1195,11 +1195,12 @@ input[type=checkbox]{accent-color:var(--green);width:15px;height:15px;cursor:poi
       <div class="form-row">
         <div class="form-group"><label class="form-label">Nome do produto *</label><input class="form-input" id="ficha-nome" type="text" placeholder="X-Burguer Especial"></div>
         <div class="form-group"><label class="form-label">Categoria</label>
-          <select class="form-select" id="ficha-cat"><option>Lanches</option><option>Pizzas</option><option>Pratos</option><option>Bebidas</option><option>Sobremesas</option><option>Acompanhamentos</option><option>Outros</option></select>
+          <input class="form-input" id="ficha-cat" list="ficha-cat-list" placeholder="Lanches, Pizzas, Porções...">
+          <datalist id="ficha-cat-list"><option>Lanches</option><option>Pizzas</option><option>Pratos</option><option>Bebidas</option><option>Sobremesas</option><option>Acompanhamentos</option><option>Porções</option><option>Outros</option></datalist>
         </div>
       </div>
       <div class="form-row">
-        <div class="form-group"><label class="form-label">Preço de Venda (PV) R$</label><input class="form-input mono" id="ficha-pv" type="number" placeholder="25.00" step="0.01" oninput="calcFicha()"></div>
+        <div class="form-group"><label class="form-label">Foto do produto</label><input class="form-input" id="ficha-img" type="file" accept="image/*" onchange="previewFichaImg(this)"><div id="ficha-img-preview" style="display:none;margin-top:6px"><img id="ficha-img-thumb" style="height:64px;border-radius:6px;object-fit:cover"></div></div>
         <div class="form-group"><label class="form-label">Rendimento (porções)</label><input class="form-input mono" id="ficha-rend" type="number" placeholder="1" value="1" step="1" oninput="calcFicha()"></div>
       </div>
       <div class="sep"></div>
@@ -1209,9 +1210,10 @@ input[type=checkbox]{accent-color:var(--green);width:15px;height:15px;cursor:poi
       </div>
       <div id="ficha-ings" class="mb-16"><div class="muted small" style="padding:12px 0">Clique em "+ Adicionar" para incluir ingredientes</div></div>
       <div class="result-panel">
-        <div class="result-row"><span class="r-label">CMV Total</span><span class="r-val amber" id="ficha-cmv">R$ 0,00</span></div>
-        <div class="result-row"><span class="r-label">Lucro em R$</span><span class="r-val" id="ficha-ld">—</span></div>
-        <div class="result-row"><span class="r-label">% Lucro</span><span class="r-val" id="ficha-pct">—</span></div>
+        <div class="result-row"><span class="r-label">CMV por porção</span><span class="r-val amber" id="ficha-cmv">R$ 0,00</span></div>
+        <div class="result-row"><span class="r-label">🏪 PDV Sugerido</span><span class="r-val green fw8" id="ficha-pdv-sug">—</span></div>
+        <div class="result-row"><span class="r-label">🟧 iFood Sugerido</span><span class="r-val" style="color:#ff5200" id="ficha-ifood-sug">—</span></div>
+        <div class="result-row"><span class="r-label">🟡 Rappi Sugerido</span><span class="r-val" style="color:#fbbf24" id="ficha-rappi-sug">—</span></div>
       </div>
       <input type="hidden" id="ficha-edit-id">
     </div>
@@ -2327,14 +2329,14 @@ let fichaIngRowsLocal = [];
 function addFichaIng() {
   if (!S.ingredients.length) { toast('Cadastre ingredientes primeiro', 'err'); return; }
   const rowId = Date.now();
-  fichaIngRowsLocal.push({ id:rowId, ingId: S.ingredients[0].id, qty:0 });
+  fichaIngRowsLocal.push({ id:rowId, ingId: S.ingredients[0].id, qty:0, loss:0 });
   const opts = S.ingredients.map(i=>`<option value="${i.id}">${i.name} (${fmt(i.unit_cost||0)}/${i.unit||'und'})</option>`).join('');
   const container = document.getElementById('ficha-ings');
   if (container.querySelector('[data-empty]')) container.innerHTML='';
   const row = document.createElement('div');
   row.style.cssText='display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border)';
   row.dataset.rowid=rowId;
-  row.innerHTML=`<select class="form-select" style="flex:2;padding:7px 10px;font-size:12px" onchange="updateFichaRow(${rowId},'ing',this.value)">${opts}</select><input type="number" class="form-input mono" style="width:90px;padding:7px 10px;font-size:12px" placeholder="0" step="0.001" oninput="updateFichaRow(${rowId},'qty',this.value)"><span style="font-size:12px;color:var(--text3);width:30px" id="frow-unit-${rowId}">${S.ingredients[0]?.unit||''}</span><span class="mono" style="font-size:12px;color:var(--amber);width:70px;text-align:right" id="frow-cmv-${rowId}">R$ 0,00</span><button class="close-btn" style="font-size:18px" onclick="removeFichaRow(${rowId})">×</button>`;
+  row.innerHTML=`<select class="form-select" style="flex:2;padding:7px 10px;font-size:12px" onchange="updateFichaRow(${rowId},'ing',this.value)">${opts}</select><input type="number" class="form-input mono" style="width:80px;padding:7px 10px;font-size:12px" placeholder="0" step="0.001" oninput="updateFichaRow(${rowId},'qty',this.value)"><span style="font-size:12px;color:var(--text3);width:30px" id="frow-unit-${rowId}">${S.ingredients[0]?.unit||''}</span><div style="display:flex;align-items:center;gap:2px;flex-shrink:0"><input type="number" class="form-input mono" style="width:52px;padding:7px 5px;font-size:11px" placeholder="0" step="0.1" min="0" max="100" title="Fator de perda %" oninput="updateFichaRow(${rowId},'loss',this.value)"><span style="font-size:10px;color:var(--text3);white-space:nowrap">% perda</span></div><span class="mono" style="font-size:12px;color:var(--amber);width:70px;text-align:right" id="frow-cmv-${rowId}">R$ 0,00</span><button class="close-btn" style="font-size:18px" onclick="removeFichaRow(${rowId})">×</button>`;
   container.appendChild(row);
   calcFicha();
 }
@@ -2344,6 +2346,7 @@ function updateFichaRow(rowId, field, value) {
   if (!row) return;
   if (field==='ing') { row.ingId=value; const i=S.ingredients.find(x=>x.id===value); document.getElementById(`frow-unit-${rowId}`).textContent=i?.unit||''; }
   if (field==='qty') row.qty=parseFloat(value)||0;
+  if (field==='loss') row.loss=parseFloat(value)||0;
   calcFicha();
 }
 
@@ -2357,43 +2360,71 @@ function calcFicha() {
   let cmv=0;
   fichaIngRowsLocal.forEach(row=>{
     const i=S.ingredients.find(x=>x.id===row.ingId);
-    if (i&&row.qty>0){const c=i.unit_cost*row.qty;cmv+=c;const el=document.getElementById(`frow-cmv-${row.id}`);if(el)el.textContent=fmt(c);}
+    if (i&&row.qty>0){
+      const lossMultiplier=1+(row.loss||0)/100;
+      const c=i.unit_cost*row.qty*lossMultiplier;
+      cmv+=c;
+      const el=document.getElementById(`frow-cmv-${row.id}`);
+      if(el)el.textContent=fmt(c);
+    }
   });
   const rend=parseInt(document.getElementById('ficha-rend').value)||1;
   cmv=cmv/rend;
   document.getElementById('ficha-cmv').textContent=fmt(cmv);
-  const pv=parseFloat(document.getElementById('ficha-pv').value)||0;
-  const dna=calcDNAValue();
-  if (pv>0&&dna>0){
-    const ld=pv*(1-dna/100)-cmv;
-    const pctL=(ld/pv)*100;
-    const col=pctL>=15?'var(--green)':pctL>=10?'var(--amber)':'var(--red)';
-    document.getElementById('ficha-ld').innerHTML=`<span style="color:${col}">${fmt(ld)}</span>`;
-    document.getElementById('ficha-pct').innerHTML=`<span style="color:${col}">${fmtPct(pctL)}</span>`;
-  } else { document.getElementById('ficha-ld').textContent='—'; document.getElementById('ficha-pct').textContent='—'; }
+  const targetPdv=parseFloat(S.finConfig?.target_cmv_proprio)||30;
+  const targetMkt=parseFloat(S.finConfig?.target_cmv_marketplace)||25;
+  const ifoodComm=parseFloat(S.finConfig?.ifood_commission)||27;
+  const rappiComm=parseFloat(S.finConfig?.rappi_commission)||30;
+  if(cmv>0){
+    const pdvSug=cmv/(targetPdv/100);
+    const ifoodSug=cmv/(targetMkt/100);
+    const rappiSug=cmv/(targetMkt/100);
+    document.getElementById('ficha-pdv-sug').textContent=fmt(pdvSug);
+    document.getElementById('ficha-ifood-sug').textContent=`${fmt(ifoodSug)} (−${ifoodComm}% comissão)`;
+    document.getElementById('ficha-rappi-sug').textContent=`${fmt(rappiSug)} (−${rappiComm}% comissão)`;
+  } else {
+    ['ficha-pdv-sug','ficha-ifood-sug','ficha-rappi-sug'].forEach(id=>{document.getElementById(id).textContent='—';});
+  }
+}
+
+function previewFichaImg(input) {
+  const preview=document.getElementById('ficha-img-preview');
+  const thumb=document.getElementById('ficha-img-thumb');
+  if(input.files&&input.files[0]){preview.style.display='block';thumb.src=URL.createObjectURL(input.files[0]);}
+  else{preview.style.display='none';thumb.src='';}
 }
 
 async function saveFicha() {
   const nome=document.getElementById('ficha-nome').value.trim();
   if (!nome){toast('Nome obrigatório','err');return;}
-  const cmvText=document.getElementById('ficha-cmv').textContent;
-  const cmv=parseFloat(cmvText.replace('R$','').replace(',','.').trim())||0;
   const editId=document.getElementById('ficha-edit-id').value;
-  const payload={
-    name:nome, category:document.getElementById('ficha-cat').value,
-    sale_price:parseFloat(document.getElementById('ficha-pv').value)||0,
-    yield_quantity:parseInt(document.getElementById('ficha-rend').value)||1,
-    cmv_total:cmv,
-    ingredients:fichaIngRowsLocal.map(r=>({ingredient_id:r.ingId,quantity:r.qty})),
-  };
-  const result=await apiJSON(editId?`/api/products/${editId}`:'/api/products',{method:editId?'PUT':'POST',body:JSON.stringify(payload)});
+  const targetPdv=parseFloat(S.finConfig?.target_cmv_proprio)||30;
+  const cmvRaw=document.getElementById('ficha-cmv').textContent.replace(/[^\d,.-]/g,'').replace(',','.');
+  const cmv=parseFloat(cmvRaw)||0;
+  const salePriceSug=cmv>0&&targetPdv>0?parseFloat((cmv/(targetPdv/100)).toFixed(2)):0;
+  const fd=new FormData();
+  fd.append('name',nome);
+  fd.append('category',document.getElementById('ficha-cat').value||'');
+  fd.append('sale_price',salePriceSug);
+  fd.append('yield_quantity',parseInt(document.getElementById('ficha-rend').value)||1);
+  const imgFile=document.getElementById('ficha-img').files[0];
+  if(imgFile) fd.append('image',imgFile);
+  fd.append('ingredients',JSON.stringify(fichaIngRowsLocal.map(r=>{
+    const ing=S.ingredients.find(x=>x.id===r.ingId);
+    return {ingredient_id:r.ingId,quantity:r.qty,unit:ing?.unit||'',loss_factor:r.loss||0};
+  })));
+  const result=await apiJSON(editId?`/api/products/${editId}`:'/api/products',{method:editId?'PUT':'POST',body:fd});
   if (!result) return;
   if (editId){const idx=S.products.findIndex(p=>p.id===editId);if(idx>=0)S.products[idx]={...S.products[idx],...result};else S.products.push(result);}
   else S.products.push(result);
   saveLocal(); closeModal('modal-ficha');
-  ['ficha-nome','ficha-pv'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('ficha-nome').value='';
+  document.getElementById('ficha-cat').value='';
+  document.getElementById('ficha-img').value='';
+  document.getElementById('ficha-img-preview').style.display='none';
   fichaIngRowsLocal=[];
   document.getElementById('ficha-ings').innerHTML=`<div class="muted small" style="padding:12px 0" data-empty>Clique em "+ Adicionar" para incluir ingredientes</div>`;
+  ['ficha-pdv-sug','ficha-ifood-sug','ficha-rappi-sug','ficha-cmv'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=id==='ficha-cmv'?'R$ 0,00':'—';});
   renderFichas(); renderDashboard();
   toast(`Ficha de ${nome} salva!`);
 }
