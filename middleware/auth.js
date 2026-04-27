@@ -4,8 +4,9 @@
 const jwt = require('jsonwebtoken');
 const { query } = require('../config/database');
 
-const JWT_SECRET    = process.env.JWT_SECRET    || 'TROQUE_ESSA_CHAVE_EM_PRODUCAO';
-const JWT_EXPIRES   = process.env.JWT_EXPIRES   || '15m';
+if (!process.env.JWT_SECRET) throw new Error('FATAL: JWT_SECRET não definido nas variáveis de ambiente');
+const JWT_SECRET      = process.env.JWT_SECRET;
+const JWT_EXPIRES     = process.env.JWT_EXPIRES   || '7d';
 const REFRESH_EXPIRES = process.env.REFRESH_EXPIRES || '30d';
 
 // ── Gerar tokens ──────────────────────────────────────────

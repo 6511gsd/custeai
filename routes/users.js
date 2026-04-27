@@ -9,6 +9,9 @@ const multer = require('multer');
 const path   = require('path');
 const fs     = require('fs');
 
+const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+const SAFE_EXT = { 'image/jpeg': '.jpg', 'image/png': '.png', 'image/webp': '.webp', 'image/gif': '.gif' };
+
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     const dir = path.join(__dirname, '../uploads/avatars');
@@ -16,11 +19,15 @@ const storage = multer.diskStorage({
     cb(null, dir);
   },
   filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname);
+    const ext = SAFE_EXT[file.mimetype] || '.jpg';
     cb(null, `avatar-${req.user.id}-${Date.now()}${ext}`);
   },
 });
-const upload = multer({ storage, limits: { fileSize: 2 * 1024 * 1024 } });
+const fileFilter = (req, file, cb) => {
+  if (ALLOWED_IMAGE_TYPES.includes(file.mimetype)) return cb(null, true);
+  cb(Object.assign(new Error('Apenas imagens são permitidas (JPEG, PNG, WebP, GIF)'), { code: 'INVALID_FILE_TYPE' }), false);
+};
+const upload = multer({ storage, limits: { fileSize: 2 * 1024 * 1024 }, fileFilter });
 
 // GET /api/users/me
 router.get('/me', requireAuth, async (req, res) => {
@@ -58,8 +65,8 @@ router.put('/me', requireAuth, upload.single('avatar'), async (req, res) => {
 router.put('/me/password', requireAuth, async (req, res) => {
   try {
     const { current_password, new_password } = req.body;
-    if (!current_password || !new_password || new_password.length < 8)
-      return res.status(400).json({ error: 'Informe a senha atual e a nova senha (mín. 8 caracteres)' });
+    if (!current_password || !new_password || new_password.length < 8 || !/[A-Z]/.test(new_password) || !/[0-9]/.test(new_password))
+      return res.status(400).json({ error: 'Informe a senha atual e a nova senha (mín. 8 caracteres, uma maiúscula e um número)' });
 
     const { rows } = await query('SELECT password_hash FROM users WHERE id=$1', [req.user.id]);
     const valid = await bcrypt.compare(current_password, rows[0].password_hash);

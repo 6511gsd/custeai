@@ -54,7 +54,12 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
 // ── Static files ──────────────────────────────────────────
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+app.use('/uploads', (req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('Content-Security-Policy', "default-src 'none'");
+  res.setHeader('Cache-Control', 'public, max-age=31536000');
+  next();
+}, express.static(path.join(__dirname, 'uploads')));
 app.use(express.static(path.join(__dirname), { index: false }));
 
 // ── Rotas ─────────────────────────────────────────────────
@@ -86,13 +91,16 @@ app.get('*', (req, res) => {
 
 // ── Error handler ─────────────────────────────────────────
 app.use((err, req, res, _next) => {
-  console.error(`[${new Date().toISOString()}] ${req.method} ${req.path}`, err);
+  if (err.code === 'LIMIT_FILE_SIZE')   return res.status(400).json({ error: 'Arquivo muito grande. Limite: 2MB' });
+  if (err.code === 'INVALID_FILE_TYPE') return res.status(400).json({ error: err.message });
+  if (err.code === 'LIMIT_UNEXPECTED_FILE') return res.status(400).json({ error: 'Campo de arquivo inesperado' });
+  console.error(`[${new Date().toISOString()}] ${req.method} ${req.path}`, err.message);
   if (err.name === 'ValidationError') return res.status(400).json({ error: err.message });
   if (err.name === 'UnauthorizedError') return res.status(401).json({ error: 'Não autorizado' });
   res.status(500).json({ error: 'Erro interno. Tente novamente.' });
 });
 
 const PORT = process.env.PORT || 4000;
-app.listen(PORT, () => console.log(`🚀 CusteAi API rodando na porta ${PORT}`));
+app.listen(PORT, () => console.log(`🚀 CusteAI API rodando na porta ${PORT}`));
 
 module.exports = app;

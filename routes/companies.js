@@ -8,6 +8,9 @@ const multer = require('multer');
 const path   = require('path');
 const fs     = require('fs');
 
+const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+const SAFE_EXT = { 'image/jpeg': '.jpg', 'image/png': '.png', 'image/webp': '.webp', 'image/gif': '.gif' };
+
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     const dir = path.join(__dirname, '../uploads/logos');
@@ -15,11 +18,15 @@ const storage = multer.diskStorage({
     cb(null, dir);
   },
   filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname);
+    const ext = SAFE_EXT[file.mimetype] || '.jpg';
     cb(null, `logo-${Date.now()}${ext}`);
   },
 });
-const upload = multer({ storage, limits: { fileSize: 2 * 1024 * 1024 } });
+const fileFilter = (req, file, cb) => {
+  if (ALLOWED_IMAGE_TYPES.includes(file.mimetype)) return cb(null, true);
+  cb(Object.assign(new Error('Apenas imagens são permitidas (JPEG, PNG, WebP, GIF)'), { code: 'INVALID_FILE_TYPE' }), false);
+};
+const upload = multer({ storage, limits: { fileSize: 2 * 1024 * 1024 }, fileFilter });
 
 // GET /api/companies/me
 router.get('/me', requireAuth, async (req, res) => {
@@ -90,9 +97,8 @@ router.post('/members/invite', requireAuth, requireRole('owner', 'admin'), async
       ON CONFLICT (company_id, user_id) DO UPDATE SET role=$3, invite_token=$5
     `, [req.companyId, userId, role || 'viewer', req.user.id, inviteToken]);
 
-    // TODO: enviar e-mail com convite
-    console.log(`[COMPANY] Convite para ${email}: token=${inviteToken}`);
-    res.json({ message: 'Convite enviado', invite_token: inviteToken });
+    console.log(`[COMPANY] Convite criado para ${email}`);
+    res.json({ message: 'Convite enviado' });
   } catch { res.status(500).json({ error: 'Erro ao convidar membro' }); }
 });
 

@@ -17,8 +17,8 @@ router.post('/register', async (req, res) => {
     if (!full_name || !email || !password || !company_name)
       return res.status(400).json({ error: 'Preencha todos os campos obrigatórios' });
 
-    if (password.length < 8)
-      return res.status(400).json({ error: 'Senha deve ter ao menos 8 caracteres' });
+    if (password.length < 8 || !/[A-Z]/.test(password) || !/[0-9]/.test(password))
+      return res.status(400).json({ error: 'Senha deve ter ao menos 8 caracteres, uma letra maiúscula e um número' });
 
     const exists = await query('SELECT id FROM users WHERE email = $1', [email.toLowerCase()]);
     if (exists.rows.length) return res.status(409).json({ error: 'E-mail já cadastrado' });
@@ -155,9 +155,15 @@ router.post('/forgot-password', async (req, res) => {
   try {
     const { email } = req.body;
     if (!email) return res.status(400).json({ error: 'E-mail obrigatório' });
-    const { rows } = await query('SELECT id, full_name FROM users WHERE email = $1', [email.toLowerCase()]);
+    const { rows } = await query('SELECT id, full_name, reset_password_expires FROM users WHERE email = $1', [email.toLowerCase()]);
     if (rows.length) {
-      const token   = uuidv4();
+      // Rate limit por e-mail: máximo 1 reset a cada 5 minutos
+      const lastExpires = rows[0].reset_password_expires;
+      const fiveMinAgo  = new Date(Date.now() - 5 * 60 * 1000);
+      if (lastExpires && new Date(lastExpires) > fiveMinAgo) {
+        return res.json({ message: 'Se o e-mail existir, você receberá as instruções em breve.' });
+      }
+      const token   = require('crypto').randomBytes(32).toString('hex');
       const expires = new Date(Date.now() + 60 * 60 * 1000);
       await query(
         'UPDATE users SET reset_password_token=$1, reset_password_expires=$2 WHERE id=$3',
@@ -177,8 +183,8 @@ router.post('/forgot-password', async (req, res) => {
 router.post('/reset-password', async (req, res) => {
   try {
     const { token, password } = req.body;
-    if (!token || !password || password.length < 8)
-      return res.status(400).json({ error: 'Token e senha (mín. 8 caracteres) são obrigatórios' });
+    if (!token || !password || password.length < 8 || !/[A-Z]/.test(password) || !/[0-9]/.test(password))
+      return res.status(400).json({ error: 'Token e senha válida (mín. 8 caracteres, uma maiúscula e um número) são obrigatórios' });
 
     const { rows } = await query(`
       SELECT id FROM users WHERE reset_password_token = $1 AND reset_password_expires > NOW()
