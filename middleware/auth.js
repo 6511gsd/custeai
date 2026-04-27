@@ -4,8 +4,8 @@
 const jwt = require('jsonwebtoken');
 const { query } = require('../config/database');
 
-if (!process.env.JWT_SECRET) throw new Error('FATAL: JWT_SECRET não definido nas variáveis de ambiente');
-const JWT_SECRET      = process.env.JWT_SECRET;
+if (!process.env.JWT_SECRET) console.error('[FATAL] JWT_SECRET não definido — defina esta variável no Railway imediatamente!');
+const JWT_SECRET      = process.env.JWT_SECRET || 'custeai_fallback_defina_jwt_secret_no_railway_agora';
 const JWT_EXPIRES     = process.env.JWT_EXPIRES   || '7d';
 const REFRESH_EXPIRES = process.env.REFRESH_EXPIRES || '30d';
 
