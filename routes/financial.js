@@ -71,6 +71,17 @@ router.put('/config', requireSubscription, async (req, res) => {
       target_cmv_proprio ?? 30.0, target_cmv_marketplace ?? 25.0,
     ]);
 
+    // Reprecificar todos os produtos com o novo target CMV
+    if (parseFloat(target_cmv_proprio) > 0) {
+      await query(`
+        UPDATE products
+        SET sale_price = ROUND(
+          (cmv_total / NULLIF(yield_quantity, 0)::numeric) / ($2 / 100.0), 2
+        )
+        WHERE company_id = $1 AND is_active = true AND cmv_total > 0
+      `, [req.companyId, parseFloat(target_cmv_proprio)]);
+    }
+
     res.json(rows[0]);
   } catch (err) {
     console.error('[FINANCIAL] config PUT:', err.message);

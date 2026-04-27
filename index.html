@@ -2101,13 +2101,9 @@ function calcIngCusto() {
 
 function previewIngImg(input) {
   if (!input.files[0]) return;
-  const reader = new FileReader();
-  reader.onload = e => {
-    S.editIngImg = e.target.result;
-    const thumb = document.getElementById('ing-thumb');
-    thumb.innerHTML = `<img src="${e.target.result}" style="width:100%;height:100%;object-fit:cover;border-radius:8px">`;
-  };
-  reader.readAsDataURL(input.files[0]);
+  S.editIngImg = input.files[0];
+  const thumb = document.getElementById('ing-thumb');
+  thumb.innerHTML = `<img src="${URL.createObjectURL(input.files[0])}" style="width:100%;height:100%;object-fit:cover;border-radius:8px">`;
 }
 
 async function saveIngrediente() {
@@ -2135,11 +2131,18 @@ async function saveIngrediente() {
     notes: document.getElementById('ing-obs').value,
   };
   payload.unit_cost = totalQty > 0 ? valor / totalQty : 0;
-  if (S.editIngImg) payload.image_url = S.editIngImg;
 
   const method = editId ? 'PUT' : 'POST';
   const path = editId ? `/api/ingredients/${editId}` : '/api/ingredients';
-  const result = await apiJSON(path, { method, body: JSON.stringify(payload) });
+  let result;
+  if (S.editIngImg instanceof File) {
+    const fd = new FormData();
+    Object.entries(payload).forEach(([k,v]) => { if(v!=null) fd.append(k, String(v)); });
+    fd.append('image', S.editIngImg);
+    result = await apiJSON(path, { method, body: fd });
+  } else {
+    result = await apiJSON(path, { method, body: JSON.stringify(payload) });
+  }
   if (!result) return;
 
   if (editId) {
@@ -2638,6 +2641,9 @@ async function saveFinConfig() {
   if (!result) return;
   S.finConfig = result;
   saveLocal(); renderDashboard();
+  // Recarrega produtos para refletir sale_price atualizado
+  const prods = await apiJSON('/api/products');
+  if (prods) { S.products = prods; saveLocal(); renderFichas(); }
   toast('Configuração financeira salva!');
 }
 
