@@ -167,15 +167,16 @@ router.get('/pricing/:productId', requireSubscription, async (req, res) => {
       ? ((cmvPortion) / (targetProprio / 100)).toFixed(2)
       : null;
 
-    // Função: preço para marketplace com comissão
-    // Fórmula: restaurante recebe preço × (1 - comissão%), então
-    // CMV = meta% × preço × (1 - comissão%) → preço = CMV / (meta% × (1 - comissão%))
+    // Fórmula: quanto cobrar no app para receber o equivalente ao PDV após comissão
+    // Preço app = Preço PDV ÷ (1 − comissão%)
+    // Preço PDV base = (CMV + extras) ÷ meta_pdv%
     function marketplacePrice(commission) {
       const extraCostPerItem = packaging + motoboy;
-      const baseCmv = cmvPortion + extraCostPerItem;
-      const denominator = (targetMarketplace / 100) * (1 - commission / 100);
-      if (denominator <= 0) return null;
-      return (baseCmv / denominator).toFixed(2);
+      const baseCmv  = cmvPortion + extraCostPerItem;
+      const pdvPrice = targetProprio > 0 ? baseCmv / (targetProprio / 100) : 0;
+      const denominator = 1 - commission / 100;
+      if (denominator <= 0 || pdvPrice <= 0) return null;
+      return (pdvPrice / denominator).toFixed(2);
     }
 
     const currentCmvPct = product.sale_price > 0

@@ -2380,8 +2380,8 @@ function calcFicha() {
   const rappiComm=parseFloat(S.finConfig?.rappi_commission)||30;
   if(cmv>0){
     const pdvSug=cmv/(targetPdv/100);
-    const ifoodSug=cmv/((targetMkt/100)*(1-ifoodComm/100));
-    const rappiSug=cmv/((targetMkt/100)*(1-rappiComm/100));
+    const ifoodSug=pdvSug/(1-ifoodComm/100);
+    const rappiSug=pdvSug/(1-rappiComm/100);
     document.getElementById('ficha-pdv-sug').textContent=fmt(pdvSug);
     document.getElementById('ficha-ifood-sug').textContent=`${fmt(ifoodSug)} (−${ifoodComm}% comissão)`;
     document.getElementById('ficha-rappi-sug').textContent=`${fmt(rappiSug)} (−${rappiComm}% comissão)`;
