@@ -158,18 +158,16 @@ router.get('/pricing/:productId', requireSubscription, async (req, res) => {
     const motoboy     = parseFloat(cfg.marketplace_motoboy   || 0);
     const mktMarketing = parseFloat(cfg.marketplace_marketing || 0);
 
-    // Apostila: DNA total = taxas + impostos + CF%
-    const dnaFull = dnaTotal + cfPct;
-    // PV = CMV / (1 − DNA% − lucro%)
-    const den15 = 1 - (dnaFull + 15) / 100;
-    const den10 = 1 - (dnaFull + 10) / 100;
-    const pdv15 = den15 > 0 ? cmvPortion / den15 : null;
-    const pdv10 = den10 > 0 ? cmvPortion / den10 : null;
+    const targetProprio     = parseFloat(cfg.target_cmv_proprio     || 30);
+    const targetMarketplace = parseFloat(cfg.target_cmv_marketplace  || 25);
+
+    // PV = CMV / (meta_cmv%)
+    const pdvPrice = targetProprio > 0 ? cmvPortion / (targetProprio / 100) : null;
 
     // Marketplace: P.MKT = PV ÷ (1 − comissão%)
-    function mktPrice(commission, pdvBase) {
+    function mktPrice(commission) {
       const d = 1 - commission / 100;
-      return (d > 0 && pdvBase > 0) ? (pdvBase / d).toFixed(2) : null;
+      return (d > 0 && pdvPrice > 0) ? (pdvPrice / d).toFixed(2) : null;
     }
 
     const currentCmvPct = product.sale_price > 0
@@ -181,36 +179,31 @@ router.get('/pricing/:productId', requireSubscription, async (req, res) => {
     const nnn_comm  = parseFloat(cfg.novenovenove_commission || 12);
 
     res.json({
-      product_name:    product.name,
-      cmv_per_portion: cmvPortion.toFixed(4),
-      yield_quantity:  yieldQty,
-      current_price:   product.sale_price,
-      current_cmv_pct: currentCmvPct,
-      dna_pct:         dnaFull.toFixed(2),
-      // Canais
+      product_name:       product.name,
+      cmv_per_portion:    cmvPortion.toFixed(4),
+      yield_quantity:     yieldQty,
+      current_price:      product.sale_price,
+      current_cmv_pct:    currentCmvPct,
+      target_cmv_proprio: targetProprio,
       proprio: {
-        price_direct:         pdv15 ? pdv15.toFixed(2) : null,
-        price_phantom:        pdv10 ? pdv10.toFixed(2) : null,
-        target_profit_direct: 15,
-        target_profit_phantom: 10,
-        total_costs_pct:      dnaFull.toFixed(2),
+        suggested_price: pdvPrice ? pdvPrice.toFixed(2) : null,
+        target_cmv_pct:  targetProprio,
       },
       ifood: {
-        commission:    ifoodComm,
-        price_direct:  mktPrice(ifoodComm, pdv15),
-        price_phantom: mktPrice(ifoodComm, pdv10),
+        commission:      ifoodComm,
+        suggested_price: mktPrice(ifoodComm),
+        target_cmv_pct:  targetMarketplace,
       },
       rappi: {
-        commission:    rappiComm,
-        price_direct:  mktPrice(rappiComm, pdv15),
-        price_phantom: mktPrice(rappiComm, pdv10),
+        commission:      rappiComm,
+        suggested_price: mktPrice(rappiComm),
+        target_cmv_pct:  targetMarketplace,
       },
       novenovenove: {
-        commission:    nnn_comm,
-        price_direct:  mktPrice(nnn_comm, pdv15),
-        price_phantom: mktPrice(nnn_comm, pdv10),
+        commission:      nnn_comm,
+        suggested_price: mktPrice(nnn_comm),
+        target_cmv_pct:  targetMarketplace,
       },
-      // Custos extras de marketplace
       marketplace_motoboy:   motoboy,
       marketplace_marketing: mktMarketing,
       marketplace_packaging: packaging,
