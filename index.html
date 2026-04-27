@@ -1652,7 +1652,7 @@ async function doLogin() {
     }
     const data = await res.json();
     if (!res.ok) {
-      setAuthError('login-error', 'login-error-msg', data.error || 'Erro ao fazer login. Tente novamente.');
+      setAuthError('login-error', 'login-error-msg', (data._debug ? data.error + ' — ' + data._debug : data.error) || 'Erro ao fazer login. Tente novamente.');
       return;
     }
     S.user = data.user; S.accessToken = data.accessToken; S.refreshToken = data.refreshToken;
@@ -1704,7 +1704,7 @@ async function doRegister() {
     }
     const data = await res.json();
     if (!res.ok) {
-      setAuthError('reg-error', 'reg-error-msg', data.error || 'Erro ao criar conta. Tente novamente.');
+      setAuthError('reg-error', 'reg-error-msg', (data._debug ? data.error + ' — ' + data._debug : data.error) || 'Erro ao criar conta. Tente novamente.');
       return;
     }
     toast('Conta criada com sucesso!', 'ok');

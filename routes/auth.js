@@ -67,7 +67,7 @@ router.post('/register', async (req, res) => {
     });
   } catch (err) {
     console.error('[AUTH] register:', err.message);
-    res.status(500).json({ error: 'Erro ao criar conta' });
+    res.status(500).json({ error: 'Erro ao criar conta', _debug: err.message });
   }
 });
 
@@ -111,7 +111,7 @@ router.post('/login', async (req, res) => {
     res.json({ user: safeUser, ...tokens });
   } catch (err) {
     console.error('[AUTH] login:', err.message);
-    res.status(500).json({ error: 'Erro ao fazer login' });
+    res.status(500).json({ error: 'Erro ao fazer login', _debug: err.message });
   }
 });
 
