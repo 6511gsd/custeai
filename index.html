@@ -371,6 +371,8 @@ input[type=checkbox]{accent-color:var(--green);width:15px;height:15px;cursor:poi
 .toast.ok{border-left:3px solid var(--green)}
 .toast.err{border-left:3px solid var(--red)}
 .toast.info{border-left:3px solid var(--blue)}
+.auth-error{display:none;background:var(--red-dim);border:1px solid var(--red);border-radius:var(--r);padding:10px 14px;font-size:13px;color:var(--red);margin-bottom:16px;line-height:1.4}
+.auth-error.show{display:flex;align-items:flex-start;gap:8px}
 .toast.warn{border-left:3px solid var(--amber)}
 @keyframes tIn{from{opacity:0;transform:translateX(30px)}to{opacity:1;transform:translateX(0)}}
 
@@ -549,6 +551,7 @@ input[type=checkbox]{accent-color:var(--green);width:15px;height:15px;cursor:poi
       <div style="text-align:right;margin-bottom:20px">
         <a id="link-forgot" style="font-size:12px;color:var(--green);cursor:pointer">Esqueci minha senha</a>
       </div>
+      <div class="auth-error" id="login-error"><span>⚠️</span><span id="login-error-msg"></span></div>
       <button class="btn btn-primary" id="btn-login">
         <span>Entrar</span>
       </button>
@@ -581,8 +584,9 @@ input[type=checkbox]{accent-color:var(--green);width:15px;height:15px;cursor:poi
           <input class="form-input" id="reg-pass" type="password" placeholder="mín. 8 caracteres">
           <span class="input-icon" onclick="togglePass('reg-pass',this)">👁️</span>
         </div>
-        <div class="form-hint">Mínimo 8 caracteres</div>
+        <div class="form-hint">Mín. 8 caracteres, uma letra maiúscula e um número</div>
       </div>
+      <div class="auth-error" id="reg-error"><span>⚠️</span><span id="reg-error-msg"></span></div>
       <button class="btn btn-primary" id="btn-register">
         <span>Criar conta gratuita</span>
       </button>
@@ -1621,43 +1625,88 @@ function togglePass(inputId, icon) {
   icon.textContent = el.type === 'password' ? '👁️' : '🙈';
 }
 
+function setAuthError(boxId, msgId, msg) {
+  const box = document.getElementById(boxId);
+  const span = document.getElementById(msgId);
+  if (!box || !span) return;
+  if (msg) { span.textContent = msg; box.classList.add('show'); }
+  else { box.classList.remove('show'); span.textContent = ''; }
+}
+
 async function doLogin() {
+  setAuthError('login-error', 'login-error-msg', '');
   const email = document.getElementById('login-email').value.trim();
-  const pass = document.getElementById('login-pass').value;
-  if (!email || !pass) { toast('Preencha e-mail e senha', 'err'); return; }
+  const pass  = document.getElementById('login-pass').value;
+  if (!email || !pass) {
+    setAuthError('login-error', 'login-error-msg', 'Preencha e-mail e senha.');
+    return;
+  }
   const btn = document.getElementById('btn-login');
   btn.disabled = true;
   btn.innerHTML = '<div class="spinner"></div>';
   try {
-    const data = await apiJSON('/api/auth/login', { method:'POST', body: JSON.stringify({ email, password: pass }) });
-    if (!data) return;
+    const res = await apiFetch('/api/auth/login', { method:'POST', body: JSON.stringify({ email, password: pass }) });
+    if (!res) {
+      setAuthError('login-error', 'login-error-msg', 'Sem conexão com o servidor. Verifique sua internet e tente novamente.');
+      return;
+    }
+    const data = await res.json();
+    if (!res.ok) {
+      setAuthError('login-error', 'login-error-msg', data.error || 'Erro ao fazer login. Tente novamente.');
+      return;
+    }
     S.user = data.user; S.accessToken = data.accessToken; S.refreshToken = data.refreshToken;
     S.company = { id: data.user.company_id, name: data.user.company_name };
     saveLocal();
     await loadAppData();
     showScreen('screen-app');
   } catch(e) {
-    toast('Erro de conexão. Tente novamente.', 'err');
+    setAuthError('login-error', 'login-error-msg', 'Erro inesperado. Recarregue a página e tente novamente.');
   } finally {
     btn.disabled = false;
-    btn.innerHTML = '<span id="login-label">Entrar</span>';
+    btn.innerHTML = '<span>Entrar</span>';
   }
 }
 
 async function doRegister() {
-  const full_name = document.getElementById('reg-name').value.trim();
+  setAuthError('reg-error', 'reg-error-msg', '');
+  const full_name    = document.getElementById('reg-name').value.trim();
   const company_name = document.getElementById('reg-company').value.trim();
-  const email = document.getElementById('reg-email').value.trim();
-  const phone = document.getElementById('reg-phone').value.trim();
-  const password = document.getElementById('reg-pass').value;
-  if (!full_name || !company_name || !email || !password) { toast('Preencha todos os campos obrigatórios', 'err'); return; }
-  if (password.length < 8) { toast('Senha deve ter ao menos 8 caracteres', 'err'); return; }
+  const email        = document.getElementById('reg-email').value.trim();
+  const phone        = document.getElementById('reg-phone').value.trim();
+  const password     = document.getElementById('reg-pass').value;
+
+  if (!full_name || !company_name || !email || !password) {
+    setAuthError('reg-error', 'reg-error-msg', 'Preencha todos os campos obrigatórios.');
+    return;
+  }
+  if (password.length < 8) {
+    setAuthError('reg-error', 'reg-error-msg', 'A senha deve ter ao menos 8 caracteres.');
+    return;
+  }
+  if (!/[A-Z]/.test(password)) {
+    setAuthError('reg-error', 'reg-error-msg', 'A senha precisa ter ao menos uma letra maiúscula. Ex: Senha123');
+    return;
+  }
+  if (!/[0-9]/.test(password)) {
+    setAuthError('reg-error', 'reg-error-msg', 'A senha precisa ter ao menos um número. Ex: Senha123');
+    return;
+  }
+
   const btn = document.getElementById('btn-register');
   btn.disabled = true;
   btn.innerHTML = '<div class="spinner"></div>';
   try {
-    const data = await apiJSON('/api/auth/register', { method:'POST', body: JSON.stringify({ full_name, company_name, email, phone, password }) });
-    if (!data) return;
+    const res = await apiFetch('/api/auth/register', { method:'POST', body: JSON.stringify({ full_name, company_name, email, phone, password }) });
+    if (!res) {
+      setAuthError('reg-error', 'reg-error-msg', 'Sem conexão com o servidor. Verifique sua internet e tente novamente.');
+      return;
+    }
+    const data = await res.json();
+    if (!res.ok) {
+      setAuthError('reg-error', 'reg-error-msg', data.error || 'Erro ao criar conta. Tente novamente.');
+      return;
+    }
     toast('Conta criada com sucesso!', 'ok');
     S.user = data.user; S.accessToken = data.accessToken; S.refreshToken = data.refreshToken;
     S.company = data.company;
@@ -1665,7 +1714,7 @@ async function doRegister() {
     await loadAppData();
     showScreen('screen-app');
   } catch(e) {
-    toast('Erro de conexão. Tente novamente.', 'err');
+    setAuthError('reg-error', 'reg-error-msg', 'Erro inesperado. Recarregue a página e tente novamente.');
   } finally {
     btn.disabled = false;
     btn.innerHTML = '<span>Criar conta gratuita</span>';
@@ -2917,6 +2966,9 @@ document.addEventListener('DOMContentLoaded', function() {
   if (q('btn-login'))      q('btn-login').addEventListener('click', doLogin);
   if (q('btn-register'))   q('btn-register').addEventListener('click', doRegister);
   if (q('btn-forgot'))     q('btn-forgot').addEventListener('click', doForgot);
+  // Limpa erros inline ao digitar
+  ['login-email','login-pass'].forEach(id => q(id) && q(id).addEventListener('input', () => setAuthError('login-error','login-error-msg','')));
+  ['reg-name','reg-company','reg-email','reg-phone','reg-pass'].forEach(id => q(id) && q(id).addEventListener('input', () => setAuthError('reg-error','reg-error-msg','')));
   if (q('link-to-register')) q('link-to-register').addEventListener('click', () => showView('view-register'));
   if (q('link-to-login'))    q('link-to-login').addEventListener('click', () => showView('view-login'));
   if (q('link-back-login'))  q('link-back-login').addEventListener('click', () => showView('view-login'));
