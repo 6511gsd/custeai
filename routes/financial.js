@@ -158,57 +158,57 @@ router.get('/pricing/:productId', requireSubscription, async (req, res) => {
     const motoboy     = parseFloat(cfg.marketplace_motoboy   || 0);
     const mktMarketing = parseFloat(cfg.marketplace_marketing || 0);
 
-    const targetProprio     = parseFloat(cfg.target_cmv_proprio     || 30);
-    const targetMarketplace = parseFloat(cfg.target_cmv_marketplace  || 25);
+    // Apostila: DNA total = taxas + impostos + CF%
+    const dnaFull = dnaTotal + cfPct;
+    // PV = CMV / (1 − DNA% − lucro%)
+    const den15 = 1 - (dnaFull + 15) / 100;
+    const den10 = 1 - (dnaFull + 10) / 100;
+    const pdv15 = den15 > 0 ? cmvPortion / den15 : null;
+    const pdv10 = den10 > 0 ? cmvPortion / den10 : null;
 
-    // Preço canal próprio
-    const totalCostsProprio = dnaTotal + cfPct;
-    const suggestedProprio = targetProprio > 0
-      ? ((cmvPortion) / (targetProprio / 100)).toFixed(2)
-      : null;
-
-    // Fórmula: quanto cobrar no app para receber o equivalente ao PDV após comissão
-    // Preço app = Preço PDV ÷ (1 − comissão%)
-    // Preço PDV base = (CMV + extras) ÷ meta_pdv%
-    function marketplacePrice(commission) {
-      const extraCostPerItem = packaging + motoboy;
-      const baseCmv  = cmvPortion + extraCostPerItem;
-      const pdvPrice = targetProprio > 0 ? baseCmv / (targetProprio / 100) : 0;
-      const denominator = 1 - commission / 100;
-      if (denominator <= 0 || pdvPrice <= 0) return null;
-      return (pdvPrice / denominator).toFixed(2);
+    // Marketplace: P.MKT = PV ÷ (1 − comissão%)
+    function mktPrice(commission, pdvBase) {
+      const d = 1 - commission / 100;
+      return (d > 0 && pdvBase > 0) ? (pdvBase / d).toFixed(2) : null;
     }
 
     const currentCmvPct = product.sale_price > 0
       ? ((cmvPortion / product.sale_price) * 100).toFixed(2)
       : null;
 
+    const ifoodComm = parseFloat(cfg.ifood_commission || 27);
+    const rappiComm = parseFloat(cfg.rappi_commission || 30);
+    const nnn_comm  = parseFloat(cfg.novenovenove_commission || 12);
+
     res.json({
-      product_name:     product.name,
-      cmv_per_portion:  cmvPortion.toFixed(4),
-      yield_quantity:   yieldQty,
-      current_price:    product.sale_price,
-      current_cmv_pct:  currentCmvPct,
+      product_name:    product.name,
+      cmv_per_portion: cmvPortion.toFixed(4),
+      yield_quantity:  yieldQty,
+      current_price:   product.sale_price,
+      current_cmv_pct: currentCmvPct,
+      dna_pct:         dnaFull.toFixed(2),
       // Canais
       proprio: {
-        suggested_price: suggestedProprio,
-        target_cmv_pct:  targetProprio,
-        total_costs_pct: totalCostsProprio.toFixed(2),
+        price_direct:         pdv15 ? pdv15.toFixed(2) : null,
+        price_phantom:        pdv10 ? pdv10.toFixed(2) : null,
+        target_profit_direct: 15,
+        target_profit_phantom: 10,
+        total_costs_pct:      dnaFull.toFixed(2),
       },
       ifood: {
-        commission:      cfg.ifood_commission || 27,
-        suggested_price: marketplacePrice(parseFloat(cfg.ifood_commission || 27)),
-        target_cmv_pct:  targetMarketplace,
+        commission:    ifoodComm,
+        price_direct:  mktPrice(ifoodComm, pdv15),
+        price_phantom: mktPrice(ifoodComm, pdv10),
       },
       rappi: {
-        commission:      cfg.rappi_commission || 30,
-        suggested_price: marketplacePrice(parseFloat(cfg.rappi_commission || 30)),
-        target_cmv_pct:  targetMarketplace,
+        commission:    rappiComm,
+        price_direct:  mktPrice(rappiComm, pdv15),
+        price_phantom: mktPrice(rappiComm, pdv10),
       },
       novenovenove: {
-        commission:      cfg.novenovenove_commission || 12,
-        suggested_price: marketplacePrice(parseFloat(cfg.novenovenove_commission || 12)),
-        target_cmv_pct:  targetMarketplace,
+        commission:    nnn_comm,
+        price_direct:  mktPrice(nnn_comm, pdv15),
+        price_phantom: mktPrice(nnn_comm, pdv10),
       },
       // Custos extras de marketplace
       marketplace_motoboy:   motoboy,

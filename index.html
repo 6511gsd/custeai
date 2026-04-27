@@ -1211,9 +1211,15 @@ input[type=checkbox]{accent-color:var(--green);width:15px;height:15px;cursor:poi
       <div id="ficha-ings" class="mb-16"><div class="muted small" style="padding:12px 0">Clique em "+ Adicionar" para incluir ingredientes</div></div>
       <div class="result-panel">
         <div class="result-row"><span class="r-label">CMV por porção</span><span class="r-val amber" id="ficha-cmv">R$ 0,00</span></div>
-        <div class="result-row"><span class="r-label">🏪 PDV Sugerido</span><span class="r-val green fw8" id="ficha-pdv-sug">—</span></div>
-        <div class="result-row"><span class="r-label">🟧 iFood Sugerido</span><span class="r-val" style="color:#ff5200" id="ficha-ifood-sug">—</span></div>
-        <div class="result-row"><span class="r-label">🟡 Rappi Sugerido</span><span class="r-val" style="color:#fbbf24" id="ficha-rappi-sug">—</span></div>
+        <div class="result-row"><span class="r-label">DNA (todos os custos)</span><span class="r-val" id="ficha-dna">—</span></div>
+        <div style="border-top:1px solid var(--border);margin:6px 0"></div>
+        <div class="result-row"><span class="r-label">🏪 PDV — 15% lucro</span><span class="r-val green fw8" id="ficha-pdv-15">—</span></div>
+        <div class="result-row"><span class="r-label">🏪 PDV mínimo — 10% lucro</span><span class="r-val" id="ficha-pdv-10">—</span></div>
+        <div style="border-top:1px solid var(--border);margin:6px 0"></div>
+        <div class="result-row"><span class="r-label">🟧 iFood direto (15%)</span><span class="r-val" style="color:#ff5200" id="ficha-ifood-dir">—</span></div>
+        <div class="result-row"><span class="r-label">🟧 iFood fantasma (10%)</span><span class="r-val muted" id="ficha-ifood-fan">—</span></div>
+        <div class="result-row"><span class="r-label">🟡 Rappi direto (15%)</span><span class="r-val" style="color:#fbbf24" id="ficha-rappi-dir">—</span></div>
+        <div class="result-row"><span class="r-label">🟡 Rappi fantasma (10%)</span><span class="r-val muted" id="ficha-rappi-fan">—</span></div>
       </div>
       <input type="hidden" id="ficha-edit-id">
     </div>
@@ -2276,21 +2282,21 @@ async function openPricingModal(productId) {
   const rows = channels.map(ch=>{
     const d = data[ch.key];
     if (!d) return '';
-    const sp = parseFloat(d.suggested_price||0);
-    const diff = data.current_price>0 ? sp - data.current_price : null;
-    const diffHtml = diff!==null ? `<span style="font-size:11px;color:${diff>0?'var(--amber)':'var(--green)'};margin-left:6px">${diff>0?'+':''}${fmt(diff)}</span>` : '';
+    const direct = parseFloat(d.price_direct||0);
+    const phantom = parseFloat(d.price_phantom||0);
     const commHtml = ch.commission!=null ? `<div style="font-size:11px;color:var(--text3)">Comissão: ${ch.commission}%</div>` : '';
     return `
       <div style="border:1px solid var(--border2);border-radius:10px;padding:14px;margin-bottom:10px">
-        <div style="display:flex;justify-content:space-between;align-items:center">
-          <div>
-            <div style="font-weight:700;font-size:13px;color:${ch.color}">${ch.name}</div>
-            ${commHtml}
-            <div style="font-size:11px;color:var(--text3)">CMV alvo: ${d.target_cmv_pct}%</div>
+        <div style="font-weight:700;font-size:13px;color:${ch.color};margin-bottom:4px">${ch.name}</div>
+        ${commHtml}
+        <div style="display:flex;gap:10px;margin-top:8px">
+          <div style="flex:1;background:var(--bg2);border-radius:8px;padding:10px;text-align:center">
+            <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px">Direto — 15% lucro</div>
+            <div style="font-size:18px;font-weight:800;color:${ch.color};margin-top:4px">${direct>0?fmt(direct):'—'}</div>
           </div>
-          <div style="text-align:right">
-            <div style="font-size:20px;font-weight:800;color:${ch.color}">${sp>0?fmt(sp):'—'}</div>
-            ${diffHtml}
+          <div style="flex:1;background:var(--bg2);border-radius:8px;padding:10px;text-align:center">
+            <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px">Fantasma — 10% lucro</div>
+            <div style="font-size:18px;font-weight:800;color:var(--text3);margin-top:4px">${phantom>0?fmt(phantom):'—'}</div>
           </div>
         </div>
       </div>`;
@@ -2300,12 +2306,12 @@ async function openPricingModal(productId) {
     <div class="result-panel mb-16">
       <div class="result-row"><span class="r-label">Produto</span><span class="r-val">${data.product_name}</span></div>
       <div class="result-row"><span class="r-label">CMV por porção</span><span class="r-val amber">${fmt(parseFloat(data.cmv_per_portion||0))}</span></div>
+      <div class="result-row"><span class="r-label">DNA total (sem lucro)</span><span class="r-val">${data.dna_pct}%</span></div>
       <div class="result-row"><span class="r-label">Preço atual</span><span class="r-val">${data.current_price>0?fmt(data.current_price):'Não definido'}</span></div>
-      ${data.current_cmv_pct?`<div class="result-row"><span class="r-label">% CMV atual</span><span class="r-val">${data.current_cmv_pct}%</span></div>`:''}
     </div>
     <div style="font-size:12px;font-weight:700;color:var(--text3);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px">Preço Sugerido por Canal</div>
     ${rows}
-    <div class="info-box" style="font-size:11px">Configure comissões e objetivo de CMV em <strong>Configuração Financeira → Marketplaces</strong> e <strong>→ Objetivo CMV</strong>.</div>
+    <div class="info-box" style="font-size:11px">Configure comissões em <strong>Configuração Financeira → Marketplaces</strong>. Preço <em>fantasma</em>: use somente no app, sem alterar o cardápio físico.</div>
   `;
 }
 
@@ -2316,14 +2322,15 @@ function renderFichas() {
   const el = document.getElementById('fichas-table');
   const dna = calcDNAValue();
   if (!S.products.length) { el.innerHTML=`<div class="empty"><div class="empty-icon">📋</div><div class="empty-title">Nenhuma ficha técnica</div><div class="empty-sub">Monte produtos vinculando ingredientes para calcular o CMV automaticamente.</div><button class="btn btn-primary" onclick="openModal('modal-ficha')">+ Criar ficha</button></div>`; return; }
-  el.innerHTML=`<table><thead><tr><th>Produto</th><th>Cat.</th><th>PV</th><th>CMV</th><th>% CMV</th><th>Lucro R$</th><th>% Lucro</th><th>Status</th><th></th></tr></thead><tbody>${S.products.map(p=>{
+  el.innerHTML=`<table><thead><tr><th>Produto</th><th>Cat.</th><th>PV</th><th>CMV/pç</th><th>% CMV</th><th>Lucro R$</th><th>% Lucro</th><th>Status</th><th></th></tr></thead><tbody>${S.products.map(p=>{
+    const cmvPortion=(p.cmv_total||0)/(p.yield_quantity||1);
     const pctL=calcLucroProduct(p);
-    const pctCMV=p.sale_price>0?((p.cmv_total||0)/p.sale_price)*100:0;
-    const ld=p.sale_price>0?(p.sale_price*(1-dna/100))-(p.cmv_total||0):0;
+    const pctCMV=p.sale_price>0?(cmvPortion/p.sale_price)*100:0;
+    const ld=p.sale_price>0?(p.sale_price*(1-dna/100))-cmvPortion:0;
     const col=pctL>=15?'var(--green)':pctL>=10?'var(--amber)':'var(--red)';
     const badge=pctL>=15?'badge-green':pctL>=10?'badge-amber':'badge-red';
     const status=pctL>=15?'Ótimo':pctL>=10?'Aceitável':'Baixo';
-    return `<tr><td><strong>${p.name}</strong></td><td><span class="badge badge-gray">${p.category||'—'}</span></td><td class="mono">${fmt(p.sale_price||0)}</td><td class="mono amber">${fmt(p.cmv_total||0)}</td><td class="mono">${fmtPct(pctCMV)}</td><td class="mono" style="color:${col}">${dna>0?fmt(ld):'—'}</td><td class="mono" style="color:${col}">${dna>0?fmtPct(pctL):'—'}</td><td><span class="badge ${dna>0?badge:'badge-gray'}">${dna>0?status:'Config.'}</span></td><td style="white-space:nowrap"><button class="btn btn-outline btn-xs" onclick="openPricingModal('${p.id}')" title="Ver preço sugerido por canal">💰</button> <button class="btn btn-danger btn-xs" onclick="deleteFicha('${p.id}')">🗑️</button></td></tr>`;
+    return `<tr><td><strong>${p.name}</strong></td><td><span class="badge badge-gray">${p.category||'—'}</span></td><td class="mono">${fmt(p.sale_price||0)}</td><td class="mono amber">${fmt(cmvPortion)}</td><td class="mono">${fmtPct(pctCMV)}</td><td class="mono" style="color:${col}">${dna>0?fmt(ld):'—'}</td><td class="mono" style="color:${col}">${dna>0?fmtPct(pctL):'—'}</td><td><span class="badge ${dna>0?badge:'badge-gray'}">${dna>0?status:'Config.'}</span></td><td style="white-space:nowrap"><button class="btn btn-outline btn-xs" onclick="openPricingModal('${p.id}')" title="Ver preço sugerido por canal">💰</button> <button class="btn btn-danger btn-xs" onclick="deleteFicha('${p.id}')">🗑️</button></td></tr>`;
   }).join('')}</tbody></table>`;
 }
 
@@ -2363,9 +2370,9 @@ function calcFicha() {
   let cmv=0;
   fichaIngRowsLocal.forEach(row=>{
     const i=S.ingredients.find(x=>x.id===row.ingId);
-    if (i&&row.qty>0){
-      const lossMultiplier=1+(row.loss||0)/100;
-      const c=i.unit_cost*row.qty*lossMultiplier;
+    if(i&&row.qty>0){
+      const lm=1+(row.loss||0)/100;
+      const c=i.unit_cost*row.qty*lm;
       cmv+=c;
       const el=document.getElementById(`frow-cmv-${row.id}`);
       if(el)el.textContent=fmt(c);
@@ -2374,19 +2381,27 @@ function calcFicha() {
   const rend=parseInt(document.getElementById('ficha-rend').value)||1;
   cmv=cmv/rend;
   document.getElementById('ficha-cmv').textContent=fmt(cmv);
-  const targetPdv=parseFloat(S.finConfig?.target_cmv_proprio)||30;
-  const targetMkt=parseFloat(S.finConfig?.target_cmv_marketplace)||25;
-  const ifoodComm=parseFloat(S.finConfig?.ifood_commission)||27;
-  const rappiComm=parseFloat(S.finConfig?.rappi_commission)||30;
-  if(cmv>0){
-    const pdvSug=cmv/(targetPdv/100);
-    const ifoodSug=pdvSug/(1-ifoodComm/100);
-    const rappiSug=pdvSug/(1-rappiComm/100);
-    document.getElementById('ficha-pdv-sug').textContent=fmt(pdvSug);
-    document.getElementById('ficha-ifood-sug').textContent=`${fmt(ifoodSug)} (−${ifoodComm}% comissão)`;
-    document.getElementById('ficha-rappi-sug').textContent=`${fmt(rappiSug)} (−${rappiComm}% comissão)`;
+  const dna=calcDNAValue();
+  document.getElementById('ficha-dna').textContent=dna>0?fmtPct(dna):'não configurado';
+  const ids=['ficha-pdv-15','ficha-pdv-10','ficha-ifood-dir','ficha-ifood-fan','ficha-rappi-dir','ficha-rappi-fan'];
+  if(cmv>0&&dna>0){
+    const ifoodComm=parseFloat(S.finConfig?.ifood_commission)||27;
+    const rappiComm=parseFloat(S.finConfig?.rappi_commission)||30;
+    // Apostila: PV = CMV ÷ (1 − DNA% − L%)
+    const den15=1-(dna+15)/100;
+    const den10=1-(dna+10)/100;
+    const pdv15=den15>0?cmv/den15:0;
+    const pdv10=den10>0?cmv/den10:0;
+    const ci=1-ifoodComm/100;
+    const cr=1-rappiComm/100;
+    document.getElementById('ficha-pdv-15').textContent=pdv15>0?fmt(pdv15):'—';
+    document.getElementById('ficha-pdv-10').textContent=pdv10>0?fmt(pdv10):'—';
+    document.getElementById('ficha-ifood-dir').textContent=pdv15>0&&ci>0?`${fmt(pdv15/ci)} (−${ifoodComm}%)`:'—';
+    document.getElementById('ficha-ifood-fan').textContent=pdv10>0&&ci>0?`${fmt(pdv10/ci)} (fantasma)`:'—';
+    document.getElementById('ficha-rappi-dir').textContent=pdv15>0&&cr>0?`${fmt(pdv15/cr)} (−${rappiComm}%)`:'—';
+    document.getElementById('ficha-rappi-fan').textContent=pdv10>0&&cr>0?`${fmt(pdv10/cr)} (fantasma)`:'—';
   } else {
-    ['ficha-pdv-sug','ficha-ifood-sug','ficha-rappi-sug'].forEach(id=>{document.getElementById(id).textContent='—';});
+    ids.forEach(id=>{document.getElementById(id).textContent='—';});
   }
 }
 
@@ -2401,10 +2416,12 @@ async function saveFicha() {
   const nome=document.getElementById('ficha-nome').value.trim();
   if (!nome){toast('Nome obrigatório','err');return;}
   const editId=document.getElementById('ficha-edit-id').value;
-  const targetPdv=parseFloat(S.finConfig?.target_cmv_proprio)||30;
   const cmvRaw=document.getElementById('ficha-cmv').textContent.replace(/[^\d,.-]/g,'').replace(',','.');
   const cmv=parseFloat(cmvRaw)||0;
-  const salePriceSug=cmv>0&&targetPdv>0?parseFloat((cmv/(targetPdv/100)).toFixed(2)):0;
+  const dnaVal=calcDNAValue();
+  const den15=1-(dnaVal+15)/100;
+  const targetPdv=parseFloat(S.finConfig?.target_cmv_proprio)||30;
+  const salePriceSug=cmv>0?(dnaVal>0&&den15>0?parseFloat((cmv/den15).toFixed(2)):parseFloat((cmv/(targetPdv/100)).toFixed(2))):0;
   const fd=new FormData();
   fd.append('name',nome);
   fd.append('category',document.getElementById('ficha-cat').value||'');
@@ -2731,9 +2748,9 @@ function calcMkt() {
   const adic=pv*coef;
 
   const canais=[
-    {nome:'iFood',emoji:'🛵',taxa:17,cor:'var(--amber)'},
-    {nome:'Rappi',emoji:'🟡',taxa:18,cor:'var(--blue)'},
-    {nome:'99Food',emoji:'🔵',taxa:15,cor:'#3b82f6'},
+    {nome:'iFood',emoji:'🛵',taxa:parseFloat(S.finConfig?.ifood_commission)||27,cor:'var(--amber)'},
+    {nome:'Rappi',emoji:'🟡',taxa:parseFloat(S.finConfig?.rappi_commission)||30,cor:'var(--blue)'},
+    {nome:'99Food',emoji:'🔵',taxa:parseFloat(S.finConfig?.novenovenove_commission)||12,cor:'#3b82f6'},
     {nome:'Cardápio',emoji:'🏠',taxa:0,cor:'var(--green)'},
   ];
 
@@ -2747,8 +2764,9 @@ function calcMkt() {
   }).join('');
 
   const pvF=cmv/(1-(dna+lmin)/100);
-  const pvFmkt=(pvF+entProd)/(1-17/100);
-  document.getElementById('mkt-fantasma').innerHTML=`<div class="result-panel"><div class="result-row"><span class="r-label">PV alternativo (${lmin}% mín.)</span><span class="r-val">${fmt(pvF)}</span></div><div class="result-row"><span class="r-label">Preço iFood com alternativo</span><span class="r-val amber fw7">${fmt(pvFmkt)}</span></div><div class="result-row"><span class="r-label">Economia vs preço normal</span><span class="r-val green">${fmt(Math.max(0,((pv+adic)/(1-17/100))-pvFmkt))}</span></div></div><div class="info-box mt-12 small">Use esse preço <strong>somente no app</strong>, sem alterar o cardápio físico.</div>`;
+  const ifoodTaxa=parseFloat(S.finConfig?.ifood_commission)||27;
+  const pvFmkt=(pvF+entProd)/(1-ifoodTaxa/100);
+  document.getElementById('mkt-fantasma').innerHTML=`<div class="result-panel"><div class="result-row"><span class="r-label">PV alternativo (${lmin}% mín.)</span><span class="r-val">${fmt(pvF)}</span></div><div class="result-row"><span class="r-label">Preço iFood com alternativo</span><span class="r-val amber fw7">${fmt(pvFmkt)}</span></div><div class="result-row"><span class="r-label">Economia vs preço normal</span><span class="r-val green">${fmt(Math.max(0,((pv+adic)/(1-ifoodTaxa/100))-pvFmkt))}</span></div></div><div class="info-box mt-12 small">Use esse preço <strong>somente no app</strong>, sem alterar o cardápio físico.</div>`;
 }
 
 // ============================================================
@@ -2962,7 +2980,8 @@ async function changePassword() {
 function calcLucroProduct(p) {
   const dna=calcDNAValue();
   if (!p.sale_price||!dna) return 0;
-  const ld=p.sale_price*(1-dna/100)-(p.cmv_total||0);
+  const cmvPortion=(p.cmv_total||0)/(p.yield_quantity||1);
+  const ld=p.sale_price*(1-dna/100)-cmvPortion;
   return (ld/p.sale_price)*100;
 }
 
