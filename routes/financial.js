@@ -168,14 +168,14 @@ router.get('/pricing/:productId', requireSubscription, async (req, res) => {
       : null;
 
     // Função: preço para marketplace com comissão
+    // Fórmula: restaurante recebe preço × (1 - comissão%), então
+    // CMV = meta% × preço × (1 - comissão%) → preço = CMV / (meta% × (1 - comissão%))
     function marketplacePrice(commission) {
-      // CMV + embalagem + motoboy por pedido / ticket médio
-      const extraCostPerItem = packaging + (motoboy > 0 ? motoboy : 0);
-      const totalCosts = dnaTotal + cfPct + commission;
-      const available  = 100 - totalCosts;
-      if (available <= 0) return null;
-      const baseCmv    = cmvPortion + extraCostPerItem;
-      return (baseCmv / (targetMarketplace / 100)).toFixed(2);
+      const extraCostPerItem = packaging + motoboy;
+      const baseCmv = cmvPortion + extraCostPerItem;
+      const denominator = (targetMarketplace / 100) * (1 - commission / 100);
+      if (denominator <= 0) return null;
+      return (baseCmv / denominator).toFixed(2);
     }
 
     const currentCmvPct = product.sale_price > 0
